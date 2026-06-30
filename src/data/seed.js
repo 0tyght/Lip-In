@@ -30,6 +30,20 @@ export function createSeedState() {
       { id: "rec_rent", title: "ค่าเช่าบ้าน", amount: 8500, frequency: "monthly", nextDate: offsetDate(7), status: "active" },
       { id: "rec_salary", title: "เงินเดือน", amount: 45000, frequency: "monthly", nextDate: offsetDate(12), status: "active" }
     ],
+    bankSettings: {
+      apiBaseUrl: "",
+      apiToken: "",
+      userId: "lipin-personal",
+      provider: "plaid"
+    },
+    bankSync: {
+      status: "not_configured",
+      lastSyncedAt: null,
+      lastImportedAt: null,
+      lastError: "",
+      importedCount: 0
+    },
+    bankConnections: [],
     lastSyncedAt: null,
     profile: {
       name: "น้องพอดี",

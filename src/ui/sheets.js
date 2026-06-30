@@ -154,7 +154,7 @@ export function renderReceiptSheet(state, sampleItems) {
   `;
 }
 
-export function renderBankSheet(state) {
+function renderBankSheetLegacy(state) {
   return `
     <div class="sheet-head"><h2>ธนาคาร</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
     <div class="form-grid">
@@ -166,6 +166,71 @@ export function renderBankSheet(state) {
         <div class="allocation-item"><div class="allocation-head"><strong>นำเข้า statement</strong><span class="tag green">พร้อมออกแบบ</span></div><div class="mini-bar"><span style="width:64%; --bar-color:#91c36b"></span></div></div>
         <div class="allocation-item"><div class="allocation-head"><strong>Open banking</strong><span class="tag">รอ API จริง</span></div><div class="mini-bar"><span style="width:48%; --bar-color:#ffc022"></span></div></div>
         <div class="allocation-item"><div class="allocation-head"><strong>PromptPay / QR</strong><span class="tag">รอเชื่อมต่อ</span></div><div class="mini-bar"><span style="width:82%; --bar-color:#f778a2"></span></div></div>
+      </div>
+    </div>
+  `;
+}
+
+export function renderBankSheet(state) {
+  const settings = state.bankSettings || {};
+  const sync = state.bankSync || {};
+  const configured = Boolean(settings.apiBaseUrl && settings.apiToken);
+  const connectionCount = (state.bankConnections || []).length;
+  const statusLabel = sync.status === "synced" ? "ซิงก์แล้ว" :
+    sync.status === "connected" ? "เชื่อมแล้ว" :
+      sync.status === "syncing" ? "กำลังซิงก์" :
+        sync.status === "connecting" ? "กำลังเชื่อม" :
+          configured ? "พร้อมต่อ API" : "ต้องตั้งค่า API";
+  const lastSync = sync.lastSyncedAt ? new Date(sync.lastSyncedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "ยังไม่เคยซิงก์จริง";
+
+  return `
+    <div class="sheet-head"><h2>ธนาคาร</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
+    <div class="form-grid">
+      <article class="card bank-card">
+        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>${statusLabel}</strong><div class="muted">${lastSync}</div></div></div>
+        <div class="bank-metrics">
+          <div class="stat-box"><div class="muted">บัญชีที่เชื่อม</div><strong>${connectionCount}</strong></div>
+          <div class="stat-box"><div class="muted">Provider</div><strong>${escapeHtml(settings.provider || "plaid")}</strong></div>
+          <div class="stat-box"><div class="muted">รายการล่าสุด</div><strong>${sync.importedCount || 0}</strong></div>
+        </div>
+        ${sync.lastError ? `<div class="bank-alert">${escapeHtml(sync.lastError)}</div>` : ""}
+      </article>
+
+      <form class="form-grid bank-setup" id="bank-settings-form">
+        <div class="field">
+          <label for="bank-api-url">Bank API URL</label>
+          <input id="bank-api-url" name="apiBaseUrl" inputmode="url" placeholder="https://lip-in-bank-sync.yourname.workers.dev" value="${escapeHtml(settings.apiBaseUrl || "")}">
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="bank-user-id">User ID</label>
+            <input id="bank-user-id" name="userId" value="${escapeHtml(settings.userId || "lipin-personal")}">
+          </div>
+          <div class="field">
+            <label for="bank-provider">Provider</label>
+            <select id="bank-provider" name="provider"><option value="plaid" ${settings.provider === "plaid" ? "selected" : ""}>Plaid / Open Banking</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="bank-api-token">Sync API token</label>
+          <input id="bank-api-token" name="apiToken" type="password" autocomplete="off" placeholder="เก็บไว้ในเครื่องนี้เท่านั้น" value="${escapeHtml(settings.apiToken || "")}">
+        </div>
+        <button class="primary-btn" type="submit">บันทึกการตั้งค่า</button>
+      </form>
+
+      <div class="bank-action-grid">
+        <button class="quick-action" type="button" data-action="check-bank-backend"><span>🔐</span><span>ตรวจ backend</span></button>
+        <button class="quick-action" type="button" data-action="connect-real-bank"><span>🏦</span><span>เชื่อมธนาคารจริง</span></button>
+        <button class="quick-action" type="button" data-action="sync-real-bank"><span>🔄</span><span>ซิงก์รายการจริง</span></button>
+        <button class="quick-action" type="button" data-action="pick-bank-statement"><span>📄</span><span>นำเข้า statement</span></button>
+        <input class="sr-only" id="bank-statement-file" type="file" accept=".csv,text/csv">
+      </div>
+
+      <div class="allocation-list">
+        <div class="allocation-item"><div class="allocation-head"><strong>1. Deploy Worker</strong><span class="tag green">ต้องมี secret</span></div><div class="muted">ใช้ไฟล์ workers/bank-sync-worker.js แล้วตั้งค่า Plaid + KV</div></div>
+        <div class="allocation-item"><div class="allocation-head"><strong>2. เชื่อมผ่าน Plaid Link</strong><span class="tag">token ไม่เข้า PWA</span></div><div class="muted">หน้าแอปจะได้เฉพาะรายการที่ sync แล้ว ไม่เก็บ access token ธนาคาร</div></div>
+        <div class="allocation-item"><div class="allocation-head"><strong>3. ธนาคารที่ไม่มี API</strong><span class="tag">CSV fallback</span></div><div class="muted">ดาวน์โหลด statement จากแอปธนาคาร แล้วนำเข้า CSV เพื่อกันข้อมูลหล่น</div></div>
+        <button class="ghost-btn" type="button" data-action="sync-bank">เติมข้อมูลเดโม</button>
       </div>
     </div>
   `;

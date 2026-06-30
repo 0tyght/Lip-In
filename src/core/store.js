@@ -32,7 +32,10 @@ export function loadState() {
       goals: parsed.goals || seed.goals,
       loans: parsed.loans || seed.loans,
       allocations: parsed.allocations || seed.allocations,
-      customCategories: parsed.customCategories || []
+      customCategories: parsed.customCategories || [],
+      bankSettings: { ...seed.bankSettings, ...(parsed.bankSettings || {}) },
+      bankSync: { ...seed.bankSync, ...(parsed.bankSync || {}) },
+      bankConnections: Array.isArray(parsed.bankConnections) ? parsed.bankConnections : seed.bankConnections || []
     };
 
     normalizeState(state, seed);
@@ -57,6 +60,24 @@ function normalizeState(state, seed) {
   };
   state.undoStack = Array.isArray(state.undoStack) ? state.undoStack : [];
   state.recurringRules = Array.isArray(state.recurringRules) ? state.recurringRules : seed.recurringRules || [];
+  state.bankSettings = {
+    apiBaseUrl: "",
+    apiToken: "",
+    userId: "lipin-personal",
+    provider: "plaid",
+    ...(seed.bankSettings || {}),
+    ...(state.bankSettings || {})
+  };
+  state.bankSync = {
+    status: "not_configured",
+    lastSyncedAt: null,
+    lastImportedAt: null,
+    lastError: "",
+    importedCount: 0,
+    ...(seed.bankSync || {}),
+    ...(state.bankSync || {})
+  };
+  state.bankConnections = Array.isArray(state.bankConnections) ? state.bankConnections : [];
   state.transactions = (state.transactions || []).map((transaction) => normalizeTransaction(transaction));
   return state;
 }

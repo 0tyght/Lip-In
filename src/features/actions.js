@@ -1,6 +1,8 @@
 import { getCategory } from "../core/selectors.js";
 import { resetState } from "../core/store.js";
 import { applyTransactionWalletImpact, defaultTransactionAdvancedFilters, defaultQuickAdd, normalizeTransaction, parseTags, splitAmountTotal } from "../core/transactions.js";
+import { connectPlaidBank, checkBankBackend, syncConfiguredBank } from "../integrations/bank-client.js";
+import { mapSyncedBankTransaction, parseBankStatementCsv } from "../integrations/bank-import.js";
 import { toISODate } from "../utils/date.js";
 import { downloadFile } from "../utils/download.js";
 import { csvCell, formatMoney, makeId } from "../utils/format.js";
@@ -67,6 +69,114 @@ export function createActions({
 
   function revertWalletChange(walletId, type, amount) {
     applyTransactionWalletImpact(getState(), { walletId, type, amount, status: "posted" }, -1);
+  }
+
+  function stableWalletId(provider, accountId) {
+    const input = `${provider}:${accountId}`;
+    let hash = 0;
+    for (let index = 0; index < input.length; index += 1) {
+      hash = ((hash << 5) - hash + input.charCodeAt(index)) | 0;
+    }
+    return `bank_${Math.abs(hash).toString(36)}`;
+  }
+
+  function upsertBankAccounts(accounts = []) {
+    const state = getState();
+    const accountWalletMap = {};
+
+    accounts.forEach((account) => {
+      const provider = account.provider || "plaid";
+      const accountId = String(account.accountId || account.id || "");
+      if (!accountId) return;
+
+      const walletId = stableWalletId(provider, accountId);
+      const liability = ["credit", "loan"].includes(String(account.type || "").toLowerCase());
+      const balance = Math.abs(Number(account.balance) || 0) * (liability ? -1 : 1);
+      const name = [account.name || "ธนาคาร", account.mask ? `••${account.mask}` : ""].filter(Boolean).join(" ");
+      const existing = state.wallets.find((wallet) => wallet.id === walletId || wallet.externalAccountId === accountId);
+      const wallet = {
+        id: walletId,
+        name,
+        icon: liability ? "💳" : "🏦",
+        balance,
+        color: liability ? "#ece8ff" : "#d5f3ff",
+        liability,
+        provider,
+        externalAccountId: accountId,
+        currency: account.currency || "THB"
+      };
+
+      if (existing) Object.assign(existing, { ...wallet, id: existing.id });
+      else state.wallets.unshift(wallet);
+      accountWalletMap[accountId] = existing?.id || walletId;
+    });
+
+    return accountWalletMap;
+  }
+
+  function findTransactionByExternalId(externalId, provider = "") {
+    if (!externalId) return null;
+    return getState().transactions.find((transaction) => {
+      const tx = normalizeTransaction(transaction);
+      return tx.externalId === externalId && (!provider || tx.provider === provider || !tx.provider);
+    });
+  }
+
+  function upsertBankTransaction(transaction) {
+    const state = getState();
+    const tx = normalizeTransaction(transaction);
+    if (!tx.externalId || !tx.amount) return "skipped";
+
+    const existingIndex = state.transactions.findIndex((item) => {
+      const existing = normalizeTransaction(item);
+      return existing.externalId === tx.externalId && existing.provider === tx.provider;
+    });
+
+    if (existingIndex >= 0) {
+      const oldTx = normalizeTransaction(state.transactions[existingIndex]);
+      applyTransactionWalletImpact(state, oldTx, -1);
+      state.transactions.splice(existingIndex, 1, tx);
+      applyTransactionWalletImpact(state, tx);
+      return "updated";
+    }
+
+    state.transactions.unshift(tx);
+    applyTransactionWalletImpact(state, tx);
+    return "inserted";
+  }
+
+  function removeBankTransaction(externalId, provider = "plaid") {
+    const state = getState();
+    const index = state.transactions.findIndex((item) => {
+      const tx = normalizeTransaction(item);
+      return tx.externalId === externalId && tx.provider === provider;
+    });
+    if (index < 0) return false;
+    const [tx] = state.transactions.splice(index, 1);
+    applyTransactionWalletImpact(state, tx, -1);
+    return true;
+  }
+
+  function importBankTransactions(transactions = [], accounts = []) {
+    const accountWalletMap = upsertBankAccounts(accounts);
+    let inserted = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    transactions.forEach((transaction) => {
+      const tx = transaction.source === "bank-sync" || transaction.source === "bank-import"
+        ? normalizeTransaction({
+          ...transaction,
+          walletId: accountWalletMap[transaction.accountId] || transaction.walletId || "daily"
+        })
+        : normalizeTransaction(mapSyncedBankTransaction(transaction, accountWalletMap));
+      const result = upsertBankTransaction(tx);
+      if (result === "inserted") inserted += 1;
+      else if (result === "updated") updated += 1;
+      else skipped += 1;
+    });
+
+    return { inserted, updated, skipped };
   }
 
   function parseSplits(data) {
@@ -318,6 +428,25 @@ export function createActions({
     commit(id ? "แก้ไขผ่อนชำระแล้ว" : "เพิ่มผ่อนชำระแล้ว", "loans");
   }
 
+  function handleBankSettingsSubmit(form) {
+    const state = getState();
+    const data = new FormData(form);
+    state.bankSettings = {
+      ...state.bankSettings,
+      apiBaseUrl: String(data.get("apiBaseUrl") || "").trim().replace(/\/+$/, ""),
+      apiToken: String(data.get("apiToken") || "").trim(),
+      userId: String(data.get("userId") || "lipin-personal").trim() || "lipin-personal",
+      provider: String(data.get("provider") || "plaid")
+    };
+    state.bankSync = {
+      ...state.bankSync,
+      status: state.bankSettings.apiBaseUrl && state.bankSettings.apiToken ? "configured" : "not_configured",
+      lastError: ""
+    };
+    commit("บันทึกการตั้งค่าธนาคารแล้ว", null, false);
+    openSheet(renderBankSheet(getState()));
+  }
+
   function handleSubmit(form) {
     if (form.matches("#transaction-form")) handleTransactionSubmitV2(form);
     if (form.matches("#allocation-form")) handleAllocationSubmit(form);
@@ -327,6 +456,7 @@ export function createActions({
     if (form.matches("#goal-form")) handleGoalSubmit(form);
     if (form.matches("#goal-deposit-form")) handleGoalDepositSubmit(form);
     if (form.matches("#loan-form")) handleLoanSubmit(form);
+    if (form.matches("#bank-settings-form")) handleBankSettingsSubmit(form);
   }
 
   function handleAppSubmit(form) {
@@ -411,11 +541,11 @@ export function createActions({
   function exportCsv() {
     const state = getState();
     const rows = [
-      ["date", "time", "type", "status", "title", "merchant", "category", "wallet", "amount", "source", "tags", "note"],
+      ["date", "time", "type", "status", "title", "merchant", "category", "wallet", "amount", "source", "provider", "external_id", "tags", "note"],
       ...state.transactions.map((tx) => {
         const category = getCategory(state, tx.categoryId);
         const wallet = state.wallets.find((item) => item.id === tx.walletId);
-        return [tx.date, tx.time || "", tx.type, tx.status || "posted", tx.title, tx.merchant || "", category.name, wallet?.name || "", tx.amount, tx.source, (tx.tags || []).join("|"), tx.note || ""];
+        return [tx.date, tx.time || "", tx.type, tx.status || "posted", tx.title, tx.merchant || "", category.name, wallet?.name || "", tx.amount, tx.source, tx.provider || "", tx.externalId || "", (tx.tags || []).join("|"), tx.note || ""];
       })
     ];
     const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
@@ -614,6 +744,126 @@ export function createActions({
     toast([title, value, note].filter(Boolean).join(" · "));
   }
 
+  function updateBankSyncStatus(patch) {
+    const state = getState();
+    state.bankSync = { ...state.bankSync, ...patch };
+    save();
+    render();
+  }
+
+  async function checkRealBankBackend() {
+    try {
+      const payload = await checkBankBackend(getState().bankSettings);
+      const state = getState();
+      state.bankSync = { ...state.bankSync, status: "ready", lastError: "" };
+      save();
+      openSheet(renderBankSheet(state));
+      toast(`Bank API พร้อมใช้งาน (${payload.provider || "provider"})`);
+    } catch (error) {
+      const state = getState();
+      state.bankSync = { ...state.bankSync, status: "error", lastError: error.message };
+      save();
+      openSheet(renderBankSheet(state));
+      toast(error.message);
+    }
+  }
+
+  async function connectRealBank() {
+    try {
+      updateBankSyncStatus({ status: "connecting", lastError: "" });
+      const result = await connectPlaidBank(getState().bankSettings);
+      const state = getState();
+      const connection = {
+        provider: result.provider || "plaid",
+        itemId: result.itemId,
+        institution: result.institution || null,
+        accounts: result.accounts || [],
+        connectedAt: result.connectedAt || new Date().toISOString()
+      };
+      state.bankConnections = [
+        connection,
+        ...(state.bankConnections || []).filter((item) => item.itemId !== connection.itemId)
+      ];
+      state.bankSync = { ...state.bankSync, status: "connected", lastError: "" };
+      save();
+      openSheet(renderBankSheet(state));
+      toast("เชื่อมธนาคารจริงแล้ว");
+    } catch (error) {
+      const state = getState();
+      state.bankSync = { ...state.bankSync, status: "error", lastError: error.message };
+      save();
+      openSheet(renderBankSheet(state));
+      toast(error.message);
+    }
+  }
+
+  async function syncRealBank() {
+    try {
+      updateBankSyncStatus({ status: "syncing", lastError: "" });
+      const payload = await syncConfiguredBank(getState().bankSettings);
+      const state = getState();
+      const accounts = payload.accounts || [];
+      const removed = payload.removed || [];
+      const txRows = [...(payload.added || []), ...(payload.modified || [])];
+      const result = importBankTransactions(txRows, accounts);
+      let removedCount = 0;
+
+      removed.forEach((item) => {
+        if (removeBankTransaction(item.externalId, item.provider || payload.provider || "plaid")) removedCount += 1;
+      });
+
+      state.bankConnections = payload.connections || state.bankConnections || [];
+      state.lastSyncedAt = new Date().toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
+      state.bankSync = {
+        ...state.bankSync,
+        status: "synced",
+        lastSyncedAt: payload.syncedAt || new Date().toISOString(),
+        importedCount: result.inserted + result.updated,
+        lastError: ""
+      };
+      save();
+      openSheet(renderBankSheet(state));
+      toast(`ซิงก์แล้ว เพิ่ม ${result.inserted} แก้ ${result.updated} ลบ ${removedCount}`);
+    } catch (error) {
+      const state = getState();
+      state.bankSync = { ...state.bankSync, status: "error", lastError: error.message };
+      save();
+      openSheet(renderBankSheet(state));
+      toast(error.message);
+    }
+  }
+
+  async function importBankStatementFile(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = parseBankStatementCsv(text, {
+        walletId: getState().bankSettings?.defaultWalletId || "daily",
+        provider: "statement"
+      });
+      if (parsed.errors.length) {
+        toast(parsed.errors[0]);
+        return;
+      }
+
+      const result = importBankTransactions(parsed.transactions, []);
+      const state = getState();
+      state.bankSync = {
+        ...state.bankSync,
+        status: "imported",
+        lastImportedAt: new Date().toISOString(),
+        importedCount: result.inserted + result.updated,
+        lastError: ""
+      };
+      save();
+      closeSheet();
+      render();
+      toast(`นำเข้า statement แล้ว ${result.inserted} รายการ`);
+    } catch (error) {
+      toast(error.message || "นำเข้า statement ไม่สำเร็จ");
+    }
+  }
+
   function handleAction(action, button = null) {
     const id = button?.dataset?.id || "";
     switch (action) {
@@ -655,6 +905,18 @@ export function createActions({
         break;
       case "sync-bank":
         syncBankDemo();
+        break;
+      case "check-bank-backend":
+        checkRealBankBackend();
+        break;
+      case "connect-real-bank":
+        connectRealBank();
+        break;
+      case "sync-real-bank":
+        syncRealBank();
+        break;
+      case "pick-bank-statement":
+        document.querySelector("#bank-statement-file")?.click();
         break;
       case "scan-demo":
         document.querySelector("#scan-result").innerHTML = renderScanItems(sampleReceiptItems());
@@ -734,6 +996,7 @@ export function createActions({
   return {
     handleAction,
     handleAppSubmit,
+    handleBankStatementFile: importBankStatementFile,
     handleReceiptImage,
     handleSubmit
   };

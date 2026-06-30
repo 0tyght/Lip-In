@@ -1636,11 +1636,38 @@ button {
   background: linear-gradient(180deg, rgba(201, 240, 223, 0.72), rgba(255, 255, 255, 0.88));
 }
 
+.bank-setup {
+  border: 1px solid rgba(95, 85, 78, 0.08);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 12px;
+}
+
 .bank-status {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 10px;
   align-items: center;
+}
+
+.bank-metrics,
+.bank-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bank-action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bank-alert {
+  border-radius: var(--radius);
+  background: var(--pink-soft);
+  color: var(--danger);
+  padding: 9px 10px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .toast {

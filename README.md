@@ -1,6 +1,15 @@
 # Lip In Money
 
-PWA สำหรับบันทึกรายรับรายจ่าย จัดการกระเป๋าเงิน งบประมาณ เป้าหมายออมเงิน ผ่อนชำระ สแกนใบเสร็จแบบเดโม และซิงก์ธนาคารแบบ mock connector
+## Real bank sync
+
+Static GitHub Pages cannot safely hold bank API secrets. Real bank sync is split into:
+
+- PWA client: saves settings, opens Plaid Link, syncs transactions, imports CSV statements.
+- Cloudflare Worker backend: exchanges public tokens, stores provider access tokens in KV, and talks to Plaid/Open Banking APIs.
+
+Setup guide: [docs/BANK_SYNC.md](docs/BANK_SYNC.md)
+
+PWA สำหรับบันทึกรายรับรายจ่าย จัดการกระเป๋าเงิน งบประมาณ เป้าหมายออมเงิน ผ่อนชำระ สแกนใบเสร็จแบบเดโม ซิงก์ธนาคารผ่าน backend จริง และนำเข้า statement CSV
 
 ## Run locally
 

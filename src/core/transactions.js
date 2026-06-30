@@ -67,6 +67,9 @@ export function normalizeTransaction(transaction = {}) {
     location: String(transaction.location || ""),
     status: ["posted", "pending", "scheduled"].includes(status) ? status : "posted",
     source: String(transaction.source || "manual"),
+    provider: String(transaction.provider || ""),
+    externalId: String(transaction.externalId || transaction.bankTransactionId || ""),
+    currency: String(transaction.currency || "THB"),
     tags: parseTags(transaction.tags || []),
     attachments: normalizeAttachments(transaction.attachments),
     splits: normalizeSplits(transaction.splits)
@@ -130,6 +133,8 @@ function transactionSearchText(state, transaction) {
     tx.location,
     tx.source,
     tx.status,
+    tx.provider,
+    tx.externalId,
     category?.name,
     wallet?.name,
     tx.tags.join(" ")

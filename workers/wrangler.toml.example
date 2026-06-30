@@ -1,0 +1,20 @@
+name = "lip-in-bank-sync"
+main = "bank-sync-worker.js"
+compatibility_date = "2026-07-01"
+
+[[kv_namespaces]]
+binding = "BANK_ITEMS"
+id = "replace_with_kv_namespace_id"
+
+[vars]
+PLAID_ENV = "sandbox"
+PLAID_CLIENT_NAME = "Lip In Money"
+PLAID_PRODUCTS = "transactions"
+PLAID_COUNTRY_CODES = "US"
+PLAID_LANGUAGE = "en"
+CORS_ORIGINS = "https://0tyght.github.io,http://127.0.0.1:4173,http://127.0.0.1:4174"
+
+# Set these as Worker secrets, not plain vars:
+# wrangler secret put PLAID_CLIENT_ID
+# wrangler secret put PLAID_SECRET
+# wrangler secret put SYNC_API_TOKEN

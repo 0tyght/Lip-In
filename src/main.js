@@ -247,8 +247,14 @@ sheetRoot.addEventListener("submit", (event) => {
 });
 
 sheetRoot.addEventListener("change", (event) => {
-  if (!event.target.matches("#receipt-file")) return;
-  actions.handleReceiptImage(event.target.files?.[0]);
+  if (event.target.matches("#receipt-file")) {
+    actions.handleReceiptImage(event.target.files?.[0]);
+    return;
+  }
+
+  if (event.target.matches("#bank-statement-file")) {
+    actions.handleBankStatementFile(event.target.files?.[0]);
+  }
 });
 
 function showUpdatedToast() {

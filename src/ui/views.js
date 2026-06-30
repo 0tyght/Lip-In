@@ -369,8 +369,8 @@ function renderWallets(state) {
       <div class="section-title"><h2>กระเป๋าเงิน</h2><button class="section-action" type="button" data-action="open-wallet">+ เพิ่ม</button></div>
       <div class="wallet-grid">${state.wallets.map(renderWalletCard).join("")}</div>
       <article class="card bank-card">
-        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>เชื่อมธนาคาร</strong><div class="muted">${state.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(state.lastSyncedAt)}` : "Sandbox พร้อมทดลอง"}</div></div></div>
-        <button class="primary-btn" type="button" data-action="sync-bank">ซิงก์ข้อมูลตัวอย่าง</button>
+        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>เชื่อมธนาคารจริง</strong><div class="muted">${state.bankSync?.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(new Date(state.bankSync.lastSyncedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }))}` : "ตั้งค่า Bank API หรือ import statement"}</div></div></div>
+        <button class="primary-btn" type="button" data-action="open-bank">ตั้งค่า / ซิงก์ธนาคาร</button>
       </article>
     </section>
   `;
@@ -432,7 +432,7 @@ function renderMenu(state) {
       <div class="menu-list">
         <button class="menu-row" type="button" data-action="open-bank">
           <span class="menu-icon">🏦</span>
-          <span class="menu-copy"><strong>ธนาคาร</strong><span>Sandbox</span></span>
+          <span class="menu-copy"><strong>ธนาคาร</strong><span>API จริง / statement</span></span>
         </button>
         <button class="menu-row" type="button" data-action="open-allocation">
           <span class="menu-icon">🧮</span>
