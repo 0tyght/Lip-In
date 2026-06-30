@@ -29,11 +29,12 @@ const index = await readFile("index.html", "utf8");
 const sw = await readFile("sw.js", "utf8");
 const main = await readFile("src/main.js", "utf8");
 const config = await readFile("src/config/app-config.js", "utf8");
+const format = await readFile("src/utils/format.js", "utf8");
 
 const checks = [
-  [index.includes('type="module" src="src/main.js?v=8"'), "index.html must load src/main.js?v=8 as a module"],
-  [index.includes("styles.css?v=8"), "index.html must load styles.css?v=8"],
-  [sw.includes("lip-in-money-v8"), "service worker cache must be v8"],
+  [index.includes('type="module" src="src/main.js?v=9"'), "index.html must load src/main.js?v=9 as a module"],
+  [index.includes("styles.css?v=9"), "index.html must load styles.css?v=9"],
+  [sw.includes("lip-in-money-v9"), "service worker cache must be v9"],
   [sw.includes("networkFirst"), "service worker must prefer network updates"],
   [sw.includes("client.navigate"), "service worker must refresh old controlled pages after activation"],
   [config.includes('STORAGE_KEY = "lip-in-money-state"'), "storage key must be stable across app versions"],
@@ -42,6 +43,7 @@ const checks = [
   [sw.includes("./src/features/actions.js"), "service worker must cache feature actions"],
   [main.includes("window.lipInTapFromElement"), "main must expose tap fallback for mobile browsers"],
   [main.includes("controllerchange"), "main must reload when a new service worker activates"],
+  [(format.match(/export function formatMoney\(/g) || []).length === 1, "formatMoney must have a single export"],
   [main.includes("serviceWorker"), "main must register the service worker"]
 ];
 

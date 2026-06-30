@@ -13,6 +13,10 @@ let deferredInstallPrompt = null;
 let serviceWorkerRegistration = null;
 let reloadingForUpdate = false;
 let lastTap = { key: "", time: 0 };
+let pointerStart = { x: 0, y: 0, time: 0 };
+let suppressTapUntil = 0;
+const TAP_MOVE_THRESHOLD = 10;
+const TAP_SUPPRESS_MS = 450;
 
 const actions = createActions({
   getState: () => state,
@@ -81,6 +85,34 @@ function shouldSkipDuplicate(key) {
   return false;
 }
 
+function pointerCoordinates(event) {
+  const point = event?.changedTouches?.[0] || event?.touches?.[0] || event;
+  const x = Number(point?.clientX);
+  const y = Number(point?.clientY);
+  return {
+    x: Number.isFinite(x) ? x : 0,
+    y: Number.isFinite(y) ? y : 0
+  };
+}
+
+function rememberPointerStart(event) {
+  const point = pointerCoordinates(event);
+  pointerStart = { ...point, time: Date.now() };
+}
+
+function isScrollingGesture(event) {
+  const now = Date.now();
+  if (now < suppressTapUntil) return true;
+  if (!event || !pointerStart.time || now - pointerStart.time > 1200) return false;
+
+  const point = pointerCoordinates(event);
+  const moved = Math.abs(point.x - pointerStart.x) > TAP_MOVE_THRESHOLD ||
+    Math.abs(point.y - pointerStart.y) > TAP_MOVE_THRESHOLD;
+
+  if (moved) suppressTapUntil = now + TAP_SUPPRESS_MS;
+  return moved;
+}
+
 function tapKey(element) {
   if (element.dataset?.close !== undefined) return "close:sheet";
   if (element.dataset?.segment) return `segment:${element.dataset.segment}`;
@@ -89,7 +121,7 @@ function tapKey(element) {
   if (element.dataset?.reportTab) return `report:${element.dataset.reportTab}`;
   if (element.dataset?.reportRange) return `report-range:${element.dataset.reportRange}`;
   if (element.dataset?.transactionFilter) return `transaction-filter:${element.dataset.transactionFilter}`;
-  if (element.dataset?.action) return `action:${element.dataset.action}:${element.dataset.id || ""}`;
+  if (element.dataset?.action) return `action:${element.dataset.action}:${element.dataset.id || element.dataset.title || ""}`;
   return "unknown";
 }
 
@@ -102,9 +134,9 @@ function selectSegment(element) {
 }
 
 function handleElementTap(element, event = null) {
+  if (!element || isScrollingGesture(event) || shouldSkipDuplicate(tapKey(element))) return false;
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  if (!element || shouldSkipDuplicate(tapKey(element))) return false;
 
   if (element.matches?.("[data-close]")) {
     closeSheet();
@@ -179,11 +211,15 @@ function bindControls(root) {
   const selector = "[data-close], [data-segment], [data-theme], [data-view], [data-report-tab], [data-report-range], [data-transaction-filter], [data-action]";
   root.querySelectorAll(selector).forEach((element) => {
     element.setAttribute("onclick", "window.lipInTapFromElement(this,event);return false;");
+    element.onpointerdown = rememberPointerStart;
     element.onpointerup = (event) => handleElementTap(element, event);
   });
 }
 
 window.lipInTapFromElement = handleElementTap;
+
+document.addEventListener("pointerdown", rememberPointerStart, true);
+document.addEventListener("touchstart", rememberPointerStart, { capture: true, passive: true });
 
 app.addEventListener("pointerup", (event) => handleDelegatedTap(event, app));
 app.addEventListener("click", (event) => handleDelegatedTap(event, app));

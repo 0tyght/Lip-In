@@ -33,6 +33,3 @@ export function makeId(prefix) {
 export function csvCell(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
-export function formatMoney(amount) {
-  return Math.round(amount).toLocaleString("th-TH");
-}

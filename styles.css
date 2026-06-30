@@ -83,7 +83,7 @@ button {
 }
 
 .app-shell {
-  width: min(100%, 480px);
+  width: min(100vw, 480px);
   min-height: 100vh;
   margin: 0 auto;
   background:
@@ -117,7 +117,7 @@ button {
   left: 50%;
   transform: translateX(-50%);
   z-index: 40;
-  width: min(100%, 480px);
+  width: min(100vw, 480px);
   background: linear-gradient(180deg, var(--yellow), rgba(255, 216, 107, 0.96));
   padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 10px;
   box-shadow: 0 8px 24px rgba(108, 84, 43, 0.08);
@@ -226,6 +226,10 @@ button {
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 14px;
+  scroll-snap-type: x proximity;
+  touch-action: pan-x pan-y;
 }
 
 .top-nav::-webkit-scrollbar,
@@ -237,6 +241,8 @@ button {
 .nav-tab,
 .chip,
 .seg-btn {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
   border: 0;
   border-radius: var(--pill);
   min-height: 34px;
@@ -262,7 +268,7 @@ button {
   left: 50%;
   transform: translateX(-50%);
   z-index: 35;
-  width: min(100%, 480px);
+  width: min(100vw, 480px);
   padding: 10px 14px;
   background: rgba(255, 255, 255, 0.84);
   backdrop-filter: blur(16px);
@@ -277,7 +283,7 @@ button {
 .content {
   position: relative;
   z-index: 1;
-  padding: calc(var(--header-height) + 14px + env(safe-area-inset-top, 0px)) 14px calc(106px + var(--safe-bottom));
+  padding: calc(var(--header-height) + 14px + env(safe-area-inset-top, 0px)) 14px calc(136px + var(--safe-bottom));
 }
 
 .app-shell[data-view="reports"] .content {
@@ -358,6 +364,10 @@ button {
   gap: 12px;
 }
 
+.metric-top > div:first-child {
+  min-width: 0;
+}
+
 .label {
   margin: 0;
   color: var(--muted);
@@ -419,14 +429,17 @@ button {
 }
 
 .assistant-bubble {
-  max-width: none;
+  flex: 0 1 auto;
+  max-width: min(142px, 38vw);
   border-radius: var(--pill);
   background: var(--pink-soft);
   color: var(--danger);
   padding: 8px 11px;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.2;
   font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -767,6 +780,7 @@ button {
   border-radius: var(--radius);
   background: linear-gradient(180deg, rgba(255, 248, 225, 0.72), rgba(255, 255, 255, 0.56));
   padding: 8px;
+  overflow: hidden;
 }
 
 .line-chart {
@@ -1333,7 +1347,7 @@ button {
   left: 50%;
   bottom: 0;
   z-index: 30;
-  width: min(100%, 480px);
+  width: min(100vw, 480px);
   transform: translateX(-50%);
   padding: 9px 14px calc(9px + var(--safe-bottom));
   background: linear-gradient(180deg, rgba(255, 248, 225, 0.82), rgba(255, 240, 177, 0.96));
@@ -1709,6 +1723,65 @@ button {
 }
 
 @media (max-width: 430px) {
+  .app-header {
+    padding-inline: 12px;
+  }
+
+  .content {
+    padding-inline: 12px;
+    padding-bottom: calc(142px + var(--safe-bottom));
+  }
+
+  .metric-card {
+    padding: 12px;
+  }
+
+  .metric-top {
+    gap: 8px;
+  }
+
+  .assistant-bubble {
+    max-width: min(128px, 36vw);
+    padding: 7px 9px;
+    font-size: 11.5px;
+  }
+
+  .money.xl {
+    font-size: 28px;
+  }
+
+  .summary-item {
+    padding: 10px 8px;
+  }
+
+  .chart-panel {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .chart-head h3 {
+    font-size: 16px;
+  }
+
+  .line-chart-wrap {
+    min-height: 144px;
+    padding: 6px;
+  }
+
+  .line-chart {
+    height: 126px;
+  }
+
+  .line-point {
+    width: 22px;
+    height: 22px;
+  }
+
+  .quick-grid,
+  .quick-amounts {
+    gap: 8px;
+  }
+
   .donut-layout,
   .budget-chart-row {
     grid-template-columns: 1fr;

@@ -17,9 +17,10 @@ function chartButton({ className, title, value, note = "", style = "", content }
 
 function normalizePoints(values, height = 52) {
   const max = Math.max(...values.map((value) => Math.abs(value)), 1);
+  const horizontalPadding = 5;
   return values.map((value, index) => {
-    const x = values.length === 1 ? 50 : (index / (values.length - 1)) * 100;
-    const y = height - (Math.abs(value) / max) * (height - 8) - 4;
+    const x = values.length === 1 ? 50 : horizontalPadding + (index / (values.length - 1)) * (100 - horizontalPadding * 2);
+    const y = height - (Math.abs(value) / max) * (height - 14) - 7;
     return { x, y, value };
   });
 }
