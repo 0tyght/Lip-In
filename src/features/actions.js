@@ -1,8 +1,9 @@
 import { getCategory } from "../core/selectors.js";
 import { resetState } from "../core/store.js";
+import { applyTransactionWalletImpact, defaultTransactionAdvancedFilters, defaultQuickAdd, normalizeTransaction, parseTags, splitAmountTotal } from "../core/transactions.js";
 import { toISODate } from "../utils/date.js";
 import { downloadFile } from "../utils/download.js";
-import { csvCell, makeId } from "../utils/format.js";
+import { csvCell, formatMoney, makeId } from "../utils/format.js";
 import { typeLabel } from "../ui/components.js";
 import {
   renderAllocationSheet,
@@ -51,20 +52,41 @@ export function createActions({
     ];
   }
 
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function rememberUndo(entry) {
+    const state = getState();
+    state.undoStack = [entry, ...(state.undoStack || [])].slice(0, 8);
+  }
+
   function applyWalletChange(walletId, type, amount) {
-    const wallet = getState().wallets.find((item) => item.id === walletId);
-    if (!wallet || Number.isNaN(amount)) return;
-    if (type === "income") wallet.balance += amount;
-    if (type === "expense" || type === "payment") wallet.balance -= amount;
-    if (type === "transfer") wallet.balance += amount;
+    applyTransactionWalletImpact(getState(), { walletId, type, amount, status: "posted" });
   }
 
   function revertWalletChange(walletId, type, amount) {
-    const wallet = getState().wallets.find((item) => item.id === walletId);
-    if (!wallet || Number.isNaN(amount)) return;
-    if (type === "income") wallet.balance -= amount;
-    if (type === "expense" || type === "payment") wallet.balance += amount;
-    if (type === "transfer") wallet.balance -= amount;
+    applyTransactionWalletImpact(getState(), { walletId, type, amount, status: "posted" }, -1);
+  }
+
+  function parseSplits(data) {
+    const categories = data.getAll("splitCategoryId");
+    const amounts = data.getAll("splitAmount");
+    return categories
+      .map((categoryId, index) => ({
+        categoryId: String(categoryId || "food"),
+        amount: Number(amounts[index]) || 0
+      }))
+      .filter((split) => split.categoryId && split.amount > 0);
+  }
+
+  function parseAttachments(data, previous = []) {
+    const attachmentName = String(data.get("attachmentName") || "").trim();
+    if (!attachmentName) return previous || [];
+    return [
+      ...(previous || []),
+      { id: makeId("att"), name: attachmentName, type: "note" }
+    ];
   }
 
   function handleTransactionSubmit(form) {
@@ -101,6 +123,69 @@ export function createActions({
 
     state.transactions.unshift(tx);
     applyWalletChange(walletId, type, amount);
+    commit(id ? "แก้ไขรายการแล้ว" : "บันทึกรายการแล้ว");
+  }
+
+  function buildTransactionFromForm(data, existing = null) {
+    const id = String(data.get("id") || "");
+    const type = String(data.get("type") || "expense");
+    const amount = Number(data.get("amount"));
+    const walletId = String(data.get("walletId") || defaultQuickAdd.walletId);
+    const splits = parseSplits(data);
+    const attachmentName = String(data.get("attachmentName") || "").trim();
+    const existingAttachmentName = (existing?.attachments || []).map((item) => item.name).join(", ");
+
+    return normalizeTransaction({
+      id: id || makeId("tx"),
+      type,
+      title: String(data.get("title") || typeLabel(type)).trim(),
+      categoryId: String(data.get("categoryId") || (type === "income" ? "salary" : type === "transfer" ? "transfer" : defaultQuickAdd.categoryId)),
+      walletId,
+      toWalletId: type === "transfer" ? String(data.get("toWalletId") || "") : "",
+      amount,
+      fee: type === "transfer" ? Number(data.get("fee")) || 0 : 0,
+      date: String(data.get("date") || toISODate(new Date())),
+      time: String(data.get("time") || ""),
+      note: String(data.get("note") || ""),
+      merchant: String(data.get("merchant") || ""),
+      location: String(data.get("location") || ""),
+      status: String(data.get("status") || "posted"),
+      source: existing?.source || "manual",
+      tags: parseTags(data.get("tags")),
+      attachments: attachmentName && attachmentName !== existingAttachmentName ? parseAttachments(data, existing?.attachments || []) : existing?.attachments || [],
+      splits
+    });
+  }
+
+  function handleTransactionSubmitV2(form) {
+    const state = getState();
+    const data = new FormData(form);
+    const id = String(data.get("id") || "");
+    const amount = Number(data.get("amount"));
+
+    if (!amount || amount <= 0) {
+      toast("ใส่จำนวนเงินก่อนนะ");
+      return;
+    }
+
+    const existingIndex = state.transactions.findIndex((item) => item.id === id);
+    const oldTx = existingIndex >= 0 ? state.transactions[existingIndex] : null;
+    const tx = buildTransactionFromForm(data, oldTx);
+    const splitTotal = splitAmountTotal(tx);
+
+    if (tx.splits.length && Math.abs(splitTotal - tx.amount) > 0.01) {
+      toast("ยอดแยกหมวดต้องเท่ากับยอดรวม");
+      return;
+    }
+
+    if (existingIndex >= 0) {
+      rememberUndo({ kind: "edit-transaction", index: existingIndex, before: clone(oldTx), afterId: tx.id });
+      applyTransactionWalletImpact(state, oldTx, -1);
+      state.transactions.splice(existingIndex, 1);
+    }
+
+    state.transactions.unshift(tx);
+    applyTransactionWalletImpact(state, tx);
     commit(id ? "แก้ไขรายการแล้ว" : "บันทึกรายการแล้ว");
   }
 
@@ -234,7 +319,7 @@ export function createActions({
   }
 
   function handleSubmit(form) {
-    if (form.matches("#transaction-form")) handleTransactionSubmit(form);
+    if (form.matches("#transaction-form")) handleTransactionSubmitV2(form);
     if (form.matches("#allocation-form")) handleAllocationSubmit(form);
     if (form.matches("#budget-form")) handleBudgetSubmit(form);
     if (form.matches("#category-form")) handleCategorySubmit(form);
@@ -242,6 +327,27 @@ export function createActions({
     if (form.matches("#goal-form")) handleGoalSubmit(form);
     if (form.matches("#goal-deposit-form")) handleGoalDepositSubmit(form);
     if (form.matches("#loan-form")) handleLoanSubmit(form);
+  }
+
+  function handleAppSubmit(form) {
+    if (!form?.matches?.("#transaction-filter-form")) return;
+    const state = getState();
+    const data = new FormData(form);
+
+    state.transactionSearch = String(data.get("search") || "").trim();
+    state.transactionAdvancedFilters = {
+      ...defaultTransactionAdvancedFilters,
+      walletId: String(data.get("walletId") || "all"),
+      categoryId: String(data.get("categoryId") || "all"),
+      status: String(data.get("status") || "all"),
+      minAmount: String(data.get("minAmount") || ""),
+      maxAmount: String(data.get("maxAmount") || ""),
+      dateFrom: String(data.get("dateFrom") || ""),
+      dateTo: String(data.get("dateTo") || ""),
+      tag: String(data.get("tag") || "").trim()
+    };
+
+    commit("กรองรายการแล้ว", null, false);
   }
 
   function handleReceiptImage(file) {
@@ -263,8 +369,9 @@ export function createActions({
     samples.forEach((sample) => {
       const exists = state.transactions.some((tx) => tx.title === sample.title && tx.date === today && tx.source === "bank");
       if (exists) return;
-      state.transactions.unshift({ id: makeId("bank"), date: today, note: "", source: "bank", ...sample });
-      applyWalletChange(sample.walletId, sample.type, sample.amount);
+      const tx = normalizeTransaction({ id: makeId("bank"), date: today, note: "", source: "bank", status: "posted", ...sample });
+      state.transactions.unshift(tx);
+      applyTransactionWalletImpact(state, tx);
     });
 
     state.lastSyncedAt = new Date().toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
@@ -288,7 +395,9 @@ export function createActions({
         note: "จากใบเสร็จ",
         source: "receipt"
       });
-      applyWalletChange(walletId, "expense", item.amount);
+      const receiptTx = normalizeTransaction({ status: "posted", tags: ["receipt"], ...state.transactions[0] });
+      state.transactions[0] = receiptTx;
+      applyTransactionWalletImpact(state, receiptTx);
     });
 
     commit("บันทึกรายการจากใบเสร็จแล้ว");
@@ -302,16 +411,86 @@ export function createActions({
   function exportCsv() {
     const state = getState();
     const rows = [
-      ["date", "type", "title", "category", "wallet", "amount", "source", "note"],
+      ["date", "time", "type", "status", "title", "merchant", "category", "wallet", "amount", "source", "tags", "note"],
       ...state.transactions.map((tx) => {
         const category = getCategory(state, tx.categoryId);
         const wallet = state.wallets.find((item) => item.id === tx.walletId);
-        return [tx.date, tx.type, tx.title, category.name, wallet?.name || "", tx.amount, tx.source, tx.note || ""];
+        return [tx.date, tx.time || "", tx.type, tx.status || "posted", tx.title, tx.merchant || "", category.name, wallet?.name || "", tx.amount, tx.source, (tx.tags || []).join("|"), tx.note || ""];
       })
     ];
     const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
     downloadFile(`lip-in-transactions-${toISODate(new Date())}.csv`, `\uFEFF${csv}`, "text/csv;charset=utf-8");
     toast("ส่งออก CSV แล้ว");
+  }
+
+  function quickAdd(button) {
+    const state = getState();
+    const amount = Number(button?.dataset?.amount);
+    if (!amount || amount <= 0) return toast("ยังไม่พบยอดบันทึกเร็ว");
+
+    const now = new Date();
+    const quick = { ...defaultQuickAdd, ...(state.quickAdd || {}) };
+    const tx = normalizeTransaction({
+      id: makeId("quick"),
+      type: "expense",
+      title: `บันทึกเร็ว ${formatMoney(amount)}`,
+      categoryId: button?.dataset?.categoryId || quick.categoryId,
+      walletId: button?.dataset?.walletId || quick.walletId,
+      amount,
+      date: toISODate(now),
+      time: now.toTimeString().slice(0, 5),
+      note: "Quick Add",
+      status: "posted",
+      source: "manual",
+      tags: ["quick"]
+    });
+
+    state.transactions.unshift(tx);
+    applyTransactionWalletImpact(state, tx);
+    commit(`บันทึกเร็ว ${formatMoney(amount)} แล้ว`, null, false);
+  }
+
+  function duplicateTransaction(id) {
+    const tx = getState().transactions.find((item) => item.id === id);
+    if (!tx) return toast("ไม่พบรายการนี้");
+    const draft = normalizeTransaction({ ...clone(tx), id: "", date: toISODate(new Date()), source: "manual" });
+    openSheet(renderTransactionSheet(getState(), draft.type, draft));
+  }
+
+  function undoLastTransaction() {
+    const state = getState();
+    const [entry, ...rest] = state.undoStack || [];
+    if (!entry) return toast("ไม่มีรายการให้ย้อนกลับ");
+
+    if (entry.kind === "delete-transaction") {
+      const tx = normalizeTransaction(entry.transaction);
+      state.transactions.splice(Math.min(entry.index, state.transactions.length), 0, tx);
+      applyTransactionWalletImpact(state, tx);
+      state.undoStack = rest;
+      commit("ย้อนกลับรายการที่ลบแล้ว", null, false);
+      return;
+    }
+
+    if (entry.kind === "edit-transaction") {
+      const currentIndex = state.transactions.findIndex((item) => item.id === entry.afterId);
+      if (currentIndex >= 0) {
+        applyTransactionWalletImpact(state, state.transactions[currentIndex], -1);
+        state.transactions.splice(currentIndex, 1);
+      }
+      const oldTx = normalizeTransaction(entry.before);
+      state.transactions.splice(Math.min(entry.index, state.transactions.length), 0, oldTx);
+      applyTransactionWalletImpact(state, oldTx);
+      state.undoStack = rest;
+      commit("ย้อนกลับการแก้ไขแล้ว", null, false);
+    }
+  }
+
+  function clearTransactionFilters() {
+    const state = getState();
+    state.transactionSearch = "";
+    state.transactionAdvancedFilters = { ...defaultTransactionAdvancedFilters };
+    state.transactionFilter = "all";
+    commit("ล้างตัวกรองแล้ว", null, false);
   }
 
   function editTransaction(id) {
@@ -325,7 +504,8 @@ export function createActions({
     const index = state.transactions.findIndex((item) => item.id === id);
     if (index < 0) return toast("ไม่พบรายการนี้");
     const [tx] = state.transactions.splice(index, 1);
-    revertWalletChange(tx.walletId, tx.type, tx.amount);
+    rememberUndo({ kind: "delete-transaction", index, transaction: clone(tx) });
+    applyTransactionWalletImpact(state, tx, -1);
     commit("ลบรายการแล้ว", null, false);
   }
 
@@ -439,6 +619,21 @@ export function createActions({
       case "delete-transaction":
         deleteTransaction(id);
         break;
+      case "duplicate-transaction":
+        duplicateTransaction(id);
+        break;
+      case "undo-transaction":
+        undoLastTransaction();
+        break;
+      case "quick-add":
+        quickAdd(button);
+        break;
+      case "clear-transaction-filters":
+        clearTransactionFilters();
+        break;
+      case "apply-transaction-filters":
+        handleAppSubmit(button?.closest("#transaction-filter-form"));
+        break;
       case "open-receipt":
         openSheet(renderReceiptSheet(getState(), sampleReceiptItems()));
         break;
@@ -528,6 +723,7 @@ export function createActions({
 
   return {
     handleAction,
+    handleAppSubmit,
     handleReceiptImage,
     handleSubmit
   };

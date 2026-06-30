@@ -34,6 +34,49 @@ export function renderAllocationItem(state, item) {
 
 export function renderTransactionRow(state, tx) {
   const category = getCategory(state, tx.categoryId);
+  const wallet = state.wallets.find((item) => item.id === tx.walletId);
+  const sign = tx.type === "income" ? "+" : tx.type === "transfer" ? "" : "-";
+  const amountClass = tx.type === "income" ? "good" : tx.type === "transfer" ? "" : "bad";
+  const status = tx.status || "posted";
+  const statusText = { posted: "ลงบัญชีแล้ว", pending: "รอตรวจ", scheduled: "ล่วงหน้า" }[status] || status;
+  const splitText = tx.splits?.length ? `แยก ${tx.splits.length} หมวด` : "";
+  const attachmentText = tx.attachments?.length ? `แนบ ${tx.attachments.length}` : "";
+  const tags = (tx.tags || []).slice(0, 3);
+  const meta = [
+    category.name,
+    wallet?.name || "",
+    formatDate(tx.date),
+    tx.time || "",
+    sourceLabel(tx.source)
+  ].filter(Boolean).join(" · ");
+
+  return `
+    <article class="transaction-row ${status !== "posted" ? "is-muted" : ""}">
+      <div class="transaction-main">
+        <span class="category-icon" style="background:${category.color}33">${category.icon}</span>
+        <div class="transaction-main-text">
+          <strong>${escapeHtml(tx.title)}</strong>
+          <div class="transaction-meta">${escapeHtml(meta)}</div>
+          <div class="transaction-tags">
+            <span class="tag ${status === "posted" ? "green" : "pink"}">${statusText}</span>
+            ${splitText ? `<span class="tag purple">${escapeHtml(splitText)}</span>` : ""}
+            ${attachmentText ? `<span class="tag">${escapeHtml(attachmentText)}</span>` : ""}
+            ${tags.map((tag) => `<span class="tag">#${escapeHtml(tag)}</span>`).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <div class="transaction-amount ${amountClass}">${sign}${formatMoney(tx.amount)}</div>
+        <button class="tiny-btn" type="button" data-action="duplicate-transaction" data-id="${tx.id}" aria-label="คัดลอก ${escapeHtml(tx.title)}">คัดลอก</button>
+        <button class="tiny-btn" type="button" data-action="edit-transaction" data-id="${tx.id}" aria-label="แก้ไข ${escapeHtml(tx.title)}">แก้ไข</button>
+        <button class="tiny-btn danger" type="button" data-action="delete-transaction" data-id="${tx.id}" aria-label="ลบ ${escapeHtml(tx.title)}">ลบ</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderTransactionRowLegacy(state, tx) {
+  const category = getCategory(state, tx.categoryId);
   const sign = tx.type === "income" ? "+" : tx.type === "transfer" ? "" : "-";
   const amountClass = tx.type === "income" ? "good" : tx.type === "transfer" ? "" : "bad";
 

@@ -1,5 +1,6 @@
 import { APP_VERSION, bottomViews, reportRanges, reportTabs, topViews, transactionFilters } from "../config/app-config.js";
 import { allCategories, assetTotal, donutStops, expenseByCategory, totalByType } from "../core/selectors.js";
+import { defaultTransactionAdvancedFilters, filteredTransactions } from "../core/transactions.js";
 import { offsetDate, formatDate } from "../utils/date.js";
 import { clamp, formatMoney, formatPercent } from "../utils/format.js";
 import { escapeHtml } from "../utils/html.js";
@@ -103,6 +104,63 @@ function renderView(state) {
   }
 }
 
+function renderQuickAmounts(state) {
+  const quick = state.quickAdd || { walletId: "daily", categoryId: "food" };
+  const amounts = Array.isArray(state.quickAmounts) && state.quickAmounts.length ? state.quickAmounts : [59, 99, 129, 250];
+  return `
+    <div class="quick-amounts" aria-label="บันทึกเร็ว">
+      ${amounts.map((amount) => `
+        <button class="quick-amount" type="button" data-action="quick-add" data-amount="${amount}" data-wallet-id="${quick.walletId}" data-category-id="${quick.categoryId}">
+          <span>-${formatMoney(amount)}</span>
+          <small>บันทึกเร็ว</small>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderFilterOptions(items, selected, labeler) {
+  return items.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected ? "selected" : ""}>${escapeHtml(labeler(item))}</option>`).join("");
+}
+
+function renderTransactionFilterForm(state) {
+  const filters = { ...defaultTransactionAdvancedFilters, ...(state.transactionAdvancedFilters || {}) };
+  const wallets = [{ id: "all", name: "ทุกกระเป๋า", icon: "" }, ...state.wallets];
+  const categories = [{ id: "all", name: "ทุกหมวด", icon: "" }, ...allCategories(state)];
+  const statuses = [
+    { id: "all", name: "ทุกสถานะ" },
+    { id: "posted", name: "ลงบัญชีแล้ว" },
+    { id: "pending", name: "รอตรวจสอบ" },
+    { id: "scheduled", name: "ล่วงหน้า" }
+  ];
+
+  return `
+    <form class="filter-panel" id="transaction-filter-form">
+      <div class="field"><label for="tx-search">ค้นหา</label><input class="search-input" id="tx-search" name="search" placeholder="ร้านค้า โน้ต แท็ก หมวด กระเป๋า" value="${escapeHtml(state.transactionSearch || "")}"></div>
+      <div class="form-row">
+        <div class="field"><label for="filter-wallet">กระเป๋า</label><select id="filter-wallet" name="walletId">${renderFilterOptions(wallets, filters.walletId, (wallet) => `${wallet.icon ? `${wallet.icon} ` : ""}${wallet.name}`)}</select></div>
+        <div class="field"><label for="filter-category">หมวด</label><select id="filter-category" name="categoryId">${renderFilterOptions(categories, filters.categoryId, (category) => `${category.icon ? `${category.icon} ` : ""}${category.name}`)}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="filter-status">สถานะ</label><select id="filter-status" name="status">${renderFilterOptions(statuses, filters.status, (status) => status.name)}</select></div>
+        <div class="field"><label for="filter-tag">แท็ก</label><input id="filter-tag" name="tag" placeholder="quick, trip" value="${escapeHtml(filters.tag)}"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="filter-from">ตั้งแต่</label><input id="filter-from" name="dateFrom" type="date" value="${escapeHtml(filters.dateFrom)}"></div>
+        <div class="field"><label for="filter-to">ถึง</label><input id="filter-to" name="dateTo" type="date" value="${escapeHtml(filters.dateTo)}"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="filter-min">ยอดต่ำสุด</label><input id="filter-min" name="minAmount" type="number" min="0" step="0.01" value="${escapeHtml(filters.minAmount)}"></div>
+        <div class="field"><label for="filter-max">ยอดสูงสุด</label><input id="filter-max" name="maxAmount" type="number" min="0" step="0.01" value="${escapeHtml(filters.maxAmount)}"></div>
+      </div>
+      <div class="form-row">
+        <button class="primary-btn" type="button" data-action="apply-transaction-filters">ค้นหา</button>
+        <button class="ghost-btn" type="button" data-action="clear-transaction-filters">ล้างตัวกรอง</button>
+      </div>
+    </form>
+  `;
+}
+
 function renderOverview(state) {
   const totalBalance = state.wallets.filter((wallet) => !wallet.liability).reduce((sum, wallet) => sum + wallet.balance, 0);
   const todayExpense = totalByType(state, "expense", "today");
@@ -132,6 +190,8 @@ function renderOverview(state) {
           <div class="summary-item"><p class="money md">${formatMoney(todayTransfer)}</p><p class="label">โอนเงินวันนี้</p></div>
         </div>
       </article>
+
+      ${renderQuickAmounts(state)}
 
       <div class="quick-grid">
         <button class="quick-action" type="button" data-action="open-receipt"><span>📷</span><span>สแกนใบเสร็จ</span></button>
@@ -304,6 +364,33 @@ function renderWallets(state) {
 }
 
 function renderTransactions(state) {
+  const txs = filteredTransactions(state);
+  const pendingCount = (state.transactions || []).filter((tx) => tx.status === "pending" || tx.status === "scheduled").length;
+
+  return `
+    <section class="view">
+      <div class="section-title">
+        <h2>ธุรกรรม <span class="tag">${txs.length} รายการ</span></h2>
+        <div class="inline-actions">
+          ${(state.undoStack || []).length ? `<button class="section-action" type="button" data-action="undo-transaction">Undo</button>` : ""}
+          <button class="section-action" type="button" data-action="open-transaction">+ เพิ่ม</button>
+        </div>
+      </div>
+      <div class="chip-row">
+        ${transactionFilters.map((filter) => `
+          <button class="chip ${state.transactionFilter === filter.id ? "is-active" : ""}" type="button" data-transaction-filter="${filter.id}">
+            ${filter.label}
+          </button>
+        `).join("")}
+      </div>
+      ${pendingCount ? `<div class="notice-card">มีรายการรอตรวจสอบ/ตั้งเวลา ${pendingCount} รายการ ยังไม่กระทบยอดกระเป๋าจนกว่าจะลงบัญชี</div>` : ""}
+      ${renderTransactionFilterForm(state)}
+      <div class="transaction-list">${txs.length ? txs.map((tx) => renderTransactionRow(state, tx)).join("") : `<div class="empty-state">ยังไม่มีรายการที่ตรงกับตัวกรอง</div>`}</div>
+    </section>
+  `;
+}
+
+function renderTransactionsLegacy(state) {
   const txs = state.transactionFilter === "all"
     ? state.transactions
     : state.transactions.filter((tx) => tx.type === state.transactionFilter);

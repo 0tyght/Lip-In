@@ -20,10 +20,93 @@ export function renderTransactionSheet(state, defaultType = "expense", transacti
     title: "",
     amount: "",
     date: today,
-    categoryId: "food",
+    categoryId: defaultType === "income" ? "salary" : defaultType === "transfer" ? "transfer" : "food",
     walletId: "daily",
+    toWalletId: "",
+    fee: "",
+    status: "posted",
+    time: "",
+    merchant: "",
+    location: "",
+    tags: [],
+    attachments: [],
+    splits: [],
     note: ""
   };
+  const tagValue = Array.isArray(tx.tags) ? tx.tags.join(", ") : "";
+  const attachmentValue = (tx.attachments || []).map((item) => item.name).join(", ");
+  const splitRows = [...(tx.splits || []), {}, {}].slice(0, Math.max(2, (tx.splits || []).length));
+
+  return `
+    <div class="sheet-head"><h2>${tx.id ? "แก้ไขรายการ" : "บันทึกรายการ"}</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
+    <form class="form-grid" id="transaction-form">
+      <input type="hidden" name="id" value="${escapeHtml(tx.id)}">
+      <input type="hidden" name="type" value="${escapeHtml(tx.type)}">
+      <div class="segmented" data-segment-group="type">
+        ${["expense", "income", "transfer", "payment"].map((type) => `<button class="seg-btn ${type === tx.type ? "is-active" : ""}" type="button" data-segment="${type}">${typeLabel(type)}</button>`).join("")}
+      </div>
+      <div class="field"><label for="tx-title">ชื่อรายการ</label><input id="tx-title" name="title" required placeholder="เช่น ข้าวกลางวัน" value="${escapeHtml(tx.title)}"></div>
+      <div class="form-row">
+        <div class="field"><label for="tx-amount">จำนวนเงิน</label><input id="tx-amount" name="amount" type="number" min="1" step="0.01" required placeholder="0" value="${tx.amount}"></div>
+        <div class="field"><label for="tx-date">วันที่</label><input id="tx-date" name="date" type="date" value="${tx.date || today}" required></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="tx-time">เวลา</label><input id="tx-time" name="time" type="time" value="${escapeHtml(tx.time || "")}"></div>
+        <div class="field"><label for="tx-status">สถานะ</label><select id="tx-status" name="status"><option value="posted" ${tx.status === "posted" ? "selected" : ""}>ลงบัญชีแล้ว</option><option value="pending" ${tx.status === "pending" ? "selected" : ""}>รอตรวจสอบ</option><option value="scheduled" ${tx.status === "scheduled" ? "selected" : ""}>ตั้งเวลาล่วงหน้า</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="tx-category">หมวดหมู่หลัก</label><select id="tx-category" name="categoryId">${categoryOptions(state, tx.categoryId)}</select></div>
+        <div class="field"><label for="tx-wallet">กระเป๋าต้นทาง</label><select id="tx-wallet" name="walletId">${walletOptions(state, tx.walletId)}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="tx-to-wallet">ปลายทางเมื่อโอนเงิน</label><select id="tx-to-wallet" name="toWalletId"><option value="">ไม่ระบุ</option>${walletOptions(state, tx.toWalletId || "")}</select></div>
+        <div class="field"><label for="tx-fee">ค่าธรรมเนียมโอน</label><input id="tx-fee" name="fee" type="number" min="0" step="0.01" value="${tx.fee || ""}" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="tx-merchant">ร้านค้า/ผู้รับเงิน</label><input id="tx-merchant" name="merchant" placeholder="เช่น 7-Eleven" value="${escapeHtml(tx.merchant || "")}"></div>
+        <div class="field"><label for="tx-location">สถานที่</label><input id="tx-location" name="location" placeholder="เช่น สยาม" value="${escapeHtml(tx.location || "")}"></div>
+      </div>
+      <div class="field"><label for="tx-tags">แท็ก</label><input id="tx-tags" name="tags" placeholder="เช่น ทริป, งาน, บ้าน" value="${escapeHtml(tagValue)}"></div>
+      <div class="field"><label for="tx-attachment">หลักฐานแนบ</label><input id="tx-attachment" name="attachmentName" placeholder="ชื่อไฟล์/เลขอ้างอิง" value="${escapeHtml(attachmentValue)}"></div>
+      <div class="split-box">
+        <div class="allocation-head"><strong>แยกหมวดในรายการเดียว</strong><span class="tag">ยอดรวมต้องเท่ากับจำนวนเงิน</span></div>
+        ${splitRows.map((split, index) => `
+          <div class="form-row">
+            <div class="field"><label for="split-cat-${index}">หมวด ${index + 1}</label><select id="split-cat-${index}" name="splitCategoryId">${categoryOptions(state, split.categoryId || tx.categoryId)}</select></div>
+            <div class="field"><label for="split-amount-${index}">ยอด</label><input id="split-amount-${index}" name="splitAmount" type="number" min="0" step="0.01" value="${split.amount || ""}" placeholder="0"></div>
+          </div>
+        `).join("")}
+      </div>
+      <div class="field"><label for="tx-note">โน้ต</label><textarea id="tx-note" name="note" placeholder="รายละเอียดเพิ่มเติม">${escapeHtml(tx.note)}</textarea></div>
+      <button class="primary-btn" type="submit">${tx.id ? "บันทึกการแก้ไข" : "บันทึกรายการ"}</button>
+    </form>
+  `;
+}
+
+function renderTransactionSheetLegacy(state, defaultType = "expense", transaction = null) {
+  const today = toISODate(new Date());
+  const tx = transaction || {
+    id: "",
+    type: defaultType,
+    title: "",
+    amount: "",
+    date: today,
+    categoryId: "food",
+    walletId: "daily",
+    toWalletId: "",
+    fee: "",
+    status: "posted",
+    time: "",
+    merchant: "",
+    location: "",
+    tags: [],
+    attachments: [],
+    splits: [],
+    note: ""
+  };
+  const tagValue = Array.isArray(tx.tags) ? tx.tags.join(", ") : "";
+  const attachmentValue = (tx.attachments || []).map((item) => item.name).join(", ");
+  const splitRows = [...(tx.splits || []), {}, {}].slice(0, Math.max(2, (tx.splits || []).length));
 
   return `
     <div class="sheet-head"><h2>${tx.id ? "แก้ไขรายการ" : "บันทึกรายการ"}</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>

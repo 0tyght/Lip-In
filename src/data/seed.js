@@ -9,6 +9,27 @@ export function createSeedState() {
     reportTab: "category",
     reportRange: "month",
     transactionFilter: "all",
+    transactionSearch: "",
+    transactionAdvancedFilters: {
+      walletId: "all",
+      categoryId: "all",
+      status: "all",
+      minAmount: "",
+      maxAmount: "",
+      dateFrom: "",
+      dateTo: "",
+      tag: ""
+    },
+    quickAmounts: [59, 99, 129, 250],
+    quickAdd: {
+      walletId: "daily",
+      categoryId: "food"
+    },
+    undoStack: [],
+    recurringRules: [
+      { id: "rec_rent", title: "ค่าเช่าบ้าน", amount: 8500, frequency: "monthly", nextDate: offsetDate(7), status: "active" },
+      { id: "rec_salary", title: "เงินเดือน", amount: 45000, frequency: "monthly", nextDate: offsetDate(12), status: "active" }
+    ],
     lastSyncedAt: null,
     profile: {
       name: "น้องพอดี",

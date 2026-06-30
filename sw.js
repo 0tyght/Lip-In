@@ -1,12 +1,13 @@
-const CACHE_NAME = "lip-in-money-v6";
+const CACHE_NAME = "lip-in-money-v7";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=6",
-  "./src/main.js?v=6",
+  "./styles.css?v=7",
+  "./src/main.js?v=7",
   "./src/config/app-config.js",
   "./src/core/selectors.js",
   "./src/core/store.js",
+  "./src/core/transactions.js",
   "./src/data/categories.js",
   "./src/data/seed.js",
   "./src/features/actions.js",

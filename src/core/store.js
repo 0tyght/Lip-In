@@ -1,5 +1,6 @@
 import { LEGACY_STORAGE_KEYS, STORAGE_KEY } from "../config/app-config.js";
 import { createSeedState } from "../data/seed.js";
+import { defaultQuickAdd, defaultTransactionAdvancedFilters, normalizeTransaction } from "./transactions.js";
 
 function readSavedState() {
   const keys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
@@ -17,7 +18,7 @@ export function loadState() {
 
   try {
     const saved = readSavedState();
-    if (!saved) return seed;
+    if (!saved) return normalizeState(seed, seed);
 
     const parsed = JSON.parse(saved.value);
     const state = {
@@ -34,12 +35,30 @@ export function loadState() {
       customCategories: parsed.customCategories || []
     };
 
+    normalizeState(state, seed);
     if (saved.key !== STORAGE_KEY) saveState(state);
     return state;
   } catch (error) {
     console.warn("Cannot load saved state", error);
-    return seed;
+    return normalizeState(seed, seed);
   }
+}
+
+function normalizeState(state, seed) {
+  state.transactionSearch = String(state.transactionSearch || "");
+  state.transactionAdvancedFilters = {
+    ...defaultTransactionAdvancedFilters,
+    ...(state.transactionAdvancedFilters || {})
+  };
+  state.quickAmounts = Array.isArray(state.quickAmounts) && state.quickAmounts.length ? state.quickAmounts : seed.quickAmounts;
+  state.quickAdd = {
+    ...defaultQuickAdd,
+    ...(state.quickAdd || {})
+  };
+  state.undoStack = Array.isArray(state.undoStack) ? state.undoStack : [];
+  state.recurringRules = Array.isArray(state.recurringRules) ? state.recurringRules : seed.recurringRules || [];
+  state.transactions = (state.transactions || []).map((transaction) => normalizeTransaction(transaction));
+  return state;
 }
 
 export function saveState(state) {
@@ -49,5 +68,6 @@ export function saveState(state) {
 export function resetState() {
   localStorage.removeItem(STORAGE_KEY);
   LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
-  return createSeedState();
+  const seed = createSeedState();
+  return normalizeState(seed, seed);
 }

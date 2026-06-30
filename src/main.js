@@ -195,6 +195,11 @@ document.addEventListener("touchend", (event) => {
   handleDelegatedTap(event, app);
 }, true);
 
+app.addEventListener("submit", (event) => {
+  event.preventDefault();
+  actions.handleAppSubmit(event.target);
+});
+
 sheetRoot.addEventListener("submit", (event) => {
   event.preventDefault();
   actions.handleSubmit(event.target);

@@ -483,6 +483,39 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.quick-amounts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quick-amount {
+  min-width: 0;
+  min-height: 58px;
+  border: 1px solid rgba(95, 85, 78, 0.08);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+
+.quick-amount span {
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.quick-amount small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
 .quick-action {
   min-height: 82px;
   border: 0;
@@ -575,6 +608,10 @@ button {
   border: 1px solid rgba(95, 85, 78, 0.06);
 }
 
+.transaction-row.is-muted {
+  background: rgba(255, 255, 255, 0.52);
+}
+
 .transaction-main,
 .asset-main {
   min-width: 0;
@@ -589,6 +626,24 @@ button {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
+}
+
+.transaction-main-text {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.transaction-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.transaction-tags .tag {
+  min-height: 22px;
+  padding: 3px 7px;
+  font-size: 11px;
 }
 
 .transaction-amount {
@@ -995,6 +1050,29 @@ button {
   background: var(--yellow);
 }
 
+.filter-panel,
+.split-box,
+.notice-card {
+  border: 1px solid rgba(95, 85, 78, 0.08);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow-soft);
+}
+
+.filter-panel,
+.split-box {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.notice-card {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .primary-btn,
 .ghost-btn,
 .danger-btn {
@@ -1191,6 +1269,7 @@ button {
   }
 
   .quick-grid,
+  .quick-amounts,
   .category-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
