@@ -25,8 +25,8 @@ Edit `wrangler.toml`:
 
 - Set `BANK_ITEMS` KV namespace id.
 - Set `CORS_ORIGINS` to your GitHub Pages URL and local dev URLs.
-- Choose `PLAID_ENV`: `sandbox`, `development`, or `production`.
-- Choose `PLAID_COUNTRY_CODES`. Plaid sandbox defaults to `US`.
+- Choose `PLAID_ENV`: use `development` for your own live test connections, then `production` only after provider approval.
+- Choose `PLAID_COUNTRY_CODES` for countries supported by your provider.
 
 Create KV:
 
@@ -60,7 +60,7 @@ Then:
 
 1. Tap `ตรวจ backend`.
 2. Tap `เชื่อมธนาคารจริง`.
-3. Complete Plaid Link.
+3. Complete the provider Link flow.
 4. Tap `ซิงก์รายการจริง`.
 
 ## Security Notes
@@ -69,6 +69,7 @@ Then:
 - The PWA stores only the Worker URL, your local user id, and the app sync token.
 - For a real multi-user app, replace `SYNC_API_TOKEN` with proper login/session auth.
 - Do not deploy with Plaid production credentials until the provider app is reviewed and production access is approved.
+- If your bank/country is not supported by the selected provider, use CSV import or replace the Worker connector with an API you are officially allowed to use.
 
 ## CSV Statement Fallback
 

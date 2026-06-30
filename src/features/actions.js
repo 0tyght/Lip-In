@@ -16,8 +16,6 @@ import {
   renderGoalSheet,
   renderInstallGuideSheet,
   renderLoanSheet,
-  renderReceiptSheet,
-  renderScanItems,
   renderTransactionSheet,
   renderWalletSheet
 } from "../ui/sheets.js";
@@ -45,13 +43,6 @@ export function createActions({
 
   function openTransaction(defaultType = "expense", transaction = null) {
     openSheet(renderTransactionSheet(getState(), defaultType, transaction));
-  }
-
-  function sampleReceiptItems() {
-    return [
-      { title: "สเปรย์นีเวียเอ็กซ์ตร้า", amount: 99 },
-      { title: "น้ำมันข้าวโพดวิปฟาร์ม", amount: 25 }
-    ];
   }
 
   function clone(value) {
@@ -487,52 +478,6 @@ export function createActions({
     thumb.innerHTML = `<img src="${url}" alt="รูปใบเสร็จ">`;
   }
 
-  function syncBankDemo() {
-    const state = getState();
-    const today = toISODate(new Date());
-    const samples = [
-      { title: "โอนเงินจากแอปธนาคาร", type: "transfer", amount: 500, categoryId: "transfer", walletId: "saving" },
-      { title: "ร้านสะดวกซื้อต่างๆ", type: "expense", amount: 124, categoryId: "food", walletId: "daily" },
-      { title: "เงินเดือนเข้า", type: "income", amount: 25000, categoryId: "salary", walletId: "daily" }
-    ];
-
-    samples.forEach((sample) => {
-      const exists = state.transactions.some((tx) => tx.title === sample.title && tx.date === today && tx.source === "bank");
-      if (exists) return;
-      const tx = normalizeTransaction({ id: makeId("bank"), date: today, note: "", source: "bank", status: "posted", ...sample });
-      state.transactions.unshift(tx);
-      applyTransactionWalletImpact(state, tx);
-    });
-
-    state.lastSyncedAt = new Date().toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
-    commit("ซิงก์ข้อมูลตัวอย่างแล้ว");
-  }
-
-  function recordScanItems() {
-    const walletId = document.querySelector("#receipt-wallet")?.value || "daily";
-    const date = document.querySelector("#receipt-date")?.value || toISODate(new Date());
-    const state = getState();
-
-    sampleReceiptItems().forEach((item) => {
-      state.transactions.unshift({
-        id: makeId("receipt"),
-        type: "expense",
-        title: item.title,
-        categoryId: "food",
-        walletId,
-        amount: item.amount,
-        date,
-        note: "จากใบเสร็จ",
-        source: "receipt"
-      });
-      const receiptTx = normalizeTransaction({ status: "posted", tags: ["receipt"], ...state.transactions[0] });
-      state.transactions[0] = receiptTx;
-      applyTransactionWalletImpact(state, receiptTx);
-    });
-
-    commit("บันทึกรายการจากใบเสร็จแล้ว");
-  }
-
   function exportJson() {
     downloadFile(`lip-in-money-${toISODate(new Date())}.json`, JSON.stringify(getState(), null, 2), "application/json");
     toast("ส่งออก JSON แล้ว");
@@ -732,9 +677,9 @@ export function createActions({
     setDeferredInstallPrompt(null);
   }
 
-  function resetDemo() {
+  function resetLocalData() {
     setState(resetState());
-    toast("รีเซ็ตข้อมูลเดโมแล้ว");
+    toast("ล้างข้อมูลในเครื่องแล้ว");
   }
 
   function showChartDetail(button) {
@@ -895,16 +840,14 @@ export function createActions({
         handleAppSubmit(button?.closest("#transaction-filter-form"));
         break;
       case "open-receipt":
-        openSheet(renderReceiptSheet(getState(), sampleReceiptItems()));
+        openTransaction("expense");
+        toast("เพิ่มเลขอ้างอิงหรือชื่อไฟล์ใบเสร็จในช่องหลักฐานแนบ");
         break;
       case "open-bank":
         openSheet(renderBankSheet(getState()));
         break;
       case "open-allocation":
         openSheet(renderAllocationSheet(getState()));
-        break;
-      case "sync-bank":
-        syncBankDemo();
         break;
       case "check-bank-backend":
         checkRealBankBackend();
@@ -917,13 +860,6 @@ export function createActions({
         break;
       case "pick-bank-statement":
         document.querySelector("#bank-statement-file")?.click();
-        break;
-      case "scan-demo":
-        document.querySelector("#scan-result").innerHTML = renderScanItems(sampleReceiptItems());
-        toast("อ่านรายการสำเร็จ");
-        break;
-      case "record-scan":
-        recordScanItems();
         break;
       case "export-json":
         exportJson();
@@ -940,8 +876,8 @@ export function createActions({
       case "check-update":
         checkForAppUpdate();
         break;
-      case "reset-demo":
-        resetDemo();
+      case "reset-data":
+        resetLocalData();
         break;
       case "open-budget":
         openSheet(renderBudgetSheet(getState()));

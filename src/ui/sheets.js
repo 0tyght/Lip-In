@@ -131,15 +131,15 @@ function renderTransactionSheetLegacy(state, defaultType = "expense", transactio
   `;
 }
 
-export function renderReceiptSheet(state, sampleItems) {
+export function renderReceiptSheet(state) {
   return `
-    <div class="sheet-head"><h2>สแกนใบเสร็จ</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
+    <div class="sheet-head"><h2>แนบใบเสร็จ</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
     <div class="form-grid">
       <div class="receipt-preview">
         <div class="receipt-thumb" id="receipt-thumb">📄</div>
         <div>
-          <div class="allocation-head"><strong>สแกนใบเสร็จสำเร็จ</strong><span class="tag green">เดโม OCR</span></div>
-          <div class="chip-row" style="margin-top:8px"><span class="tag green">พบ: 1 ใบเสร็จ</span><span class="tag purple">2 รายการ</span><span class="tag">จาก: 7-Eleven</span></div>
+          <div class="allocation-head"><strong>เก็บหลักฐานใบเสร็จ</strong><span class="tag green">ใช้กับรายการจริง</span></div>
+          <div class="chip-row" style="margin-top:8px"><span class="tag green">บันทึกเลขอ้างอิง</span><span class="tag purple">แนบชื่อไฟล์</span><span class="tag">ตรวจย้อนหลังได้</span></div>
         </div>
       </div>
       <div class="field"><label for="receipt-file">รูปใบเสร็จ</label><input id="receipt-file" type="file" accept="image/*" capture="environment"></div>
@@ -147,9 +147,7 @@ export function renderReceiptSheet(state, sampleItems) {
         <div class="field"><label for="receipt-wallet">กระเป๋า</label><select id="receipt-wallet">${walletOptions(state, "daily")}</select></div>
         <div class="field"><label for="receipt-date">วันที่</label><input id="receipt-date" type="date" value="${toISODate(new Date())}"></div>
       </div>
-      <button class="ghost-btn" type="button" data-action="scan-demo">อ่านรายการ</button>
-      <div class="scan-items" id="scan-result">${renderScanItems(sampleItems)}</div>
-      <button class="primary-btn" type="button" data-action="record-scan">บันทึกรายการ</button>
+      <button class="primary-btn" type="button" data-action="open-transaction">บันทึกรายการจริง</button>
     </div>
   `;
 }
@@ -159,8 +157,8 @@ function renderBankSheetLegacy(state) {
     <div class="sheet-head"><h2>ธนาคาร</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
     <div class="form-grid">
       <article class="card bank-card">
-        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>Sandbox</strong><div class="muted">${state.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(state.lastSyncedAt)}` : "ยังไม่เคยซิงก์"}</div></div></div>
-        <button class="primary-btn" type="button" data-action="sync-bank">ซิงก์ข้อมูลตัวอย่าง</button>
+        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>Bank API</strong><div class="muted">${state.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(state.lastSyncedAt)}` : "ยังไม่เคยซิงก์"}</div></div></div>
+        <button class="primary-btn" type="button" data-action="open-bank">ตั้งค่าการเชื่อมต่อ</button>
       </article>
       <div class="allocation-list">
         <div class="allocation-item"><div class="allocation-head"><strong>นำเข้า statement</strong><span class="tag green">พร้อมออกแบบ</span></div><div class="mini-bar"><span style="width:64%; --bar-color:#91c36b"></span></div></div>
@@ -230,7 +228,6 @@ export function renderBankSheet(state) {
         <div class="allocation-item"><div class="allocation-head"><strong>1. Deploy Worker</strong><span class="tag green">ต้องมี secret</span></div><div class="muted">ใช้ไฟล์ workers/bank-sync-worker.js แล้วตั้งค่า Plaid + KV</div></div>
         <div class="allocation-item"><div class="allocation-head"><strong>2. เชื่อมผ่าน Plaid Link</strong><span class="tag">token ไม่เข้า PWA</span></div><div class="muted">หน้าแอปจะได้เฉพาะรายการที่ sync แล้ว ไม่เก็บ access token ธนาคาร</div></div>
         <div class="allocation-item"><div class="allocation-head"><strong>3. ธนาคารที่ไม่มี API</strong><span class="tag">CSV fallback</span></div><div class="muted">ดาวน์โหลด statement จากแอปธนาคาร แล้วนำเข้า CSV เพื่อกันข้อมูลหล่น</div></div>
-        <button class="ghost-btn" type="button" data-action="sync-bank">เติมข้อมูลเดโม</button>
       </div>
     </div>
   `;

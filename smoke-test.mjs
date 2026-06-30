@@ -6,6 +6,7 @@ const requiredFiles = [
   "sw.js",
   "manifest.webmanifest",
   "docs/BANK_SYNC.md",
+  "docs/REAL_USE_GUIDE.md",
   "src/main.js",
   "src/config/app-config.js",
   "src/core/store.js",
@@ -38,9 +39,9 @@ const format = await readFile("src/utils/format.js", "utf8");
 const worker = await readFile("workers/bank-sync-worker.js", "utf8");
 
 const checks = [
-  [index.includes('type="module" src="src/main.js?v=10"'), "index.html must load src/main.js?v=10 as a module"],
-  [index.includes("styles.css?v=10"), "index.html must load styles.css?v=10"],
-  [sw.includes("lip-in-money-v10"), "service worker cache must be v10"],
+  [index.includes('type="module" src="src/main.js?v=11"'), "index.html must load src/main.js?v=11 as a module"],
+  [index.includes("styles.css?v=11"), "index.html must load styles.css?v=11"],
+  [sw.includes("lip-in-money-v11"), "service worker cache must be v11"],
   [sw.includes("networkFirst"), "service worker must prefer network updates"],
   [sw.includes("client.navigate"), "service worker must refresh old controlled pages after activation"],
   [config.includes('STORAGE_KEY = "lip-in-money-state"'), "storage key must be stable across app versions"],

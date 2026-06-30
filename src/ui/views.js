@@ -48,7 +48,7 @@ function renderHeader(state) {
           </div>
         </div>
         <div class="header-actions">
-          <button class="icon-btn" type="button" data-action="open-receipt" aria-label="สแกนใบเสร็จ">📷</button>
+          <button class="icon-btn" type="button" data-action="open-receipt" aria-label="แนบใบเสร็จ">📷</button>
         </div>
       </div>
       <nav class="top-nav" aria-label="เมนูหลัก">
@@ -175,16 +175,19 @@ function renderOverview(state) {
   const todayExpense = totalByType(state, "expense", "today");
   const todayIncome = totalByType(state, "income", "today");
   const todayTransfer = totalByType(state, "transfer", "today");
-  const ratio = clamp(todayExpense / state.dailyLimit, 0, 1.25);
+  const ratio = state.dailyLimit > 0 ? clamp(todayExpense / state.dailyLimit, 0, 1.25) : 0;
+  const dailyLimitLabel = state.dailyLimit > 0
+    ? `${formatMoneyHtml(todayExpense)} / ${formatMoneyHtml(state.dailyLimit)}`
+    : "ยังไม่ได้ตั้งวงเงิน";
 
   return `
     <section class="view">
       <article class="card metric-card">
         <div class="metric-top">
           <div>
-            <p class="label">ยอดคงเหลือ <span class="tag">6 กระเป๋า</span></p>
+            <p class="label">ยอดคงเหลือ <span class="tag">${state.wallets.length} กระเป๋า</span></p>
             <p class="money xl">${formatMoneyHtml(totalBalance)}</p>
-            <p class="label">ค่าใช้จ่ายรายวัน ${formatPercent(ratio)} <strong class="nowrap">${formatMoneyHtml(todayExpense)} / ${formatMoneyHtml(state.dailyLimit)}</strong></p>
+            <p class="label">ค่าใช้จ่ายรายวัน ${formatPercent(ratio)} <strong class="nowrap">${dailyLimitLabel}</strong></p>
           </div>
           <div class="assistant-bubble">แมวเงินดูแลแล้วนะ</div>
         </div>
@@ -207,7 +210,7 @@ function renderOverview(state) {
       ${renderQuickAmounts(state)}
 
       <div class="quick-grid">
-        <button class="quick-action" type="button" data-action="open-receipt"><span>📷</span><span>สแกนใบเสร็จ</span></button>
+        <button class="quick-action" type="button" data-action="open-receipt"><span>📷</span><span>แนบใบเสร็จ</span></button>
         <button class="quick-action" type="button" data-action="open-transaction"><span>✍️</span><span>เพิ่มรายการ</span></button>
         <button class="quick-action" type="button" data-action="open-bank"><span>🏦</span><span>ซิงก์ธนาคาร</span></button>
         <button class="quick-action" type="button" data-action="export-csv"><span>📤</span><span>ส่งออก CSV</span></button>
@@ -451,7 +454,7 @@ function renderMenu(state) {
       <div class="section-title"><h2>บันทึกเร็ว</h2></div>
       <div class="quick-grid">
         <button class="quick-action" type="button" data-action="open-transaction"><span>✍️</span><span>เพิ่มรายการ</span></button>
-        <button class="quick-action" type="button" data-action="open-receipt"><span>📷</span><span>สแกนใบเสร็จ</span></button>
+        <button class="quick-action" type="button" data-action="open-receipt"><span>📷</span><span>แนบใบเสร็จ</span></button>
         <button class="quick-action" type="button" data-view="transactions"><span>🧾</span><span>รายการ</span></button>
         <button class="quick-action" type="button" data-view="wallets"><span>👛</span><span>กระเป๋า</span></button>
       </div>
@@ -469,7 +472,7 @@ function renderMenu(state) {
           <button class="ghost-btn" type="button" data-action="export-json">สำรอง JSON</button>
           <button class="ghost-btn" type="button" data-action="export-csv">ส่งออก CSV</button>
         </div>
-        <button class="danger-btn" type="button" data-action="reset-demo">รีเซ็ตข้อมูลเดโม</button>
+        <button class="danger-btn" type="button" data-action="reset-data">ล้างข้อมูลในเครื่อง</button>
       </article>
 
       <div class="section-title"><h2>หมวดหมู่</h2><button class="section-action" type="button" data-action="open-category">+ เพิ่ม</button></div>

@@ -1,5 +1,9 @@
 # Lip In Money
 
+PWA สำหรับใช้งานเงินจริง: บันทึกรายรับรายจ่าย จัดการกระเป๋าเงิน งบประมาณ เป้าหมายออมเงิน ผ่อนชำระ แบ่งสัดส่วนเงิน นำเข้า statement CSV และซิงก์ธนาคารผ่าน backend ที่ถือ secret ฝั่ง server เท่านั้น
+
+คู่มือใช้งานจริงแบบละเอียด: [docs/REAL_USE_GUIDE.md](docs/REAL_USE_GUIDE.md)
+
 ## Real bank sync
 
 Static GitHub Pages cannot safely hold bank API secrets. Real bank sync is split into:
@@ -8,8 +12,6 @@ Static GitHub Pages cannot safely hold bank API secrets. Real bank sync is split
 - Cloudflare Worker backend: exchanges public tokens, stores provider access tokens in KV, and talks to Plaid/Open Banking APIs.
 
 Setup guide: [docs/BANK_SYNC.md](docs/BANK_SYNC.md)
-
-PWA สำหรับบันทึกรายรับรายจ่าย จัดการกระเป๋าเงิน งบประมาณ เป้าหมายออมเงิน ผ่อนชำระ สแกนใบเสร็จแบบเดโม ซิงก์ธนาคารผ่าน backend จริง และนำเข้า statement CSV
 
 ## Run locally
 
