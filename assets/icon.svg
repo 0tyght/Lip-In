@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lip In Money icon">
+  <defs>
+    <linearGradient id="bg" x1="64" x2="448" y1="64" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE28A"/>
+      <stop offset=".52" stop-color="#FFD0E0"/>
+      <stop offset="1" stop-color="#BFE7D2"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path fill="#fffaf1" d="M138 173c16-49 75-78 128-53 55-23 111 7 126 55 20 61-18 129-77 151l-49 18-50-18c-62-22-98-91-78-153Z"/>
+  <path fill="#5f554e" d="M172 209c12 0 22 10 22 22s-10 22-22 22-22-10-22-22 10-22 22-22Zm168 0c12 0 22 10 22 22s-10 22-22 22-22-10-22-22 10-22 22-22Z"/>
+  <path fill="none" stroke="#5f554e" stroke-linecap="round" stroke-width="18" d="M219 281c17 19 57 19 74 0"/>
+  <path fill="#fff" d="M190 88h132c22 0 40 18 40 40v38H150v-38c0-22 18-40 40-40Z"/>
+  <path fill="#93c86d" d="M181 133c0-11 9-20 20-20h110c11 0 20 9 20 20s-9 20-20 20H201c-11 0-20-9-20-20Z"/>
+  <path fill="#ff7ca8" d="M112 317c18 0 33 15 33 33s-15 33-33 33-33-15-33-33 15-33 33-33Zm288 0c18 0 33 15 33 33s-15 33-33 33-33-15-33-33 15-33 33-33Z"/>
+</svg>

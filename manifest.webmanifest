@@ -1,0 +1,19 @@
+{
+  "name": "Lip In Money",
+  "short_name": "Lip In",
+  "description": "PWA รายรับรายจ่าย บริหารเงิน และแบ่งสัดส่วนเงิน",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff8e9",
+  "theme_color": "#ffd86b",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
