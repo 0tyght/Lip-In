@@ -1745,6 +1745,7 @@
 
   function bindAppControls() {
     app.querySelectorAll("[data-theme], [data-view], [data-report-tab], [data-report-range], [data-transaction-filter], [data-action]").forEach((element) => {
+      element.setAttribute("onclick", "window.lipInTapFromElement(this,event);return false;");
       const handler = (event) => {
         event.preventDefault();
         handleDelegatedInteraction(event, app);
@@ -1756,6 +1757,7 @@
 
   function bindSheetControls() {
     sheetRoot.querySelectorAll("[data-close], [data-segment], [data-action]").forEach((element) => {
+      element.setAttribute("onclick", "window.lipInTapFromElement(this,event);return false;");
       const handler = (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -1765,6 +1767,70 @@
       element.onclick = handler;
     });
   }
+
+  function lipInTapFromElement(element, event = null) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (!element) return false;
+
+    if (element.matches?.("[data-close]")) {
+      closeSheet();
+      return false;
+    }
+
+    if (element.dataset?.segment) {
+      const group = element.closest("[data-segment-group]");
+      const input = group?.parentElement?.querySelector(`input[name="${group.dataset.segmentGroup}"]`);
+      if (input) input.value = element.dataset.segment;
+      group?.querySelectorAll(".seg-btn").forEach((button) => button.classList.remove("is-active"));
+      element.classList.add("is-active");
+      return false;
+    }
+
+    if (element.dataset?.theme) {
+      state.theme = element.dataset.theme;
+      saveState();
+      render();
+      return false;
+    }
+
+    if (element.dataset?.view) {
+      state.view = element.dataset.view;
+      saveState();
+      render();
+      return false;
+    }
+
+    if (element.dataset?.reportTab) {
+      state.reportTab = element.dataset.reportTab;
+      saveState();
+      render();
+      return false;
+    }
+
+    if (element.dataset?.reportRange) {
+      state.reportRange = element.dataset.reportRange;
+      saveState();
+      render();
+      return false;
+    }
+
+    if (element.dataset?.transactionFilter) {
+      state.transactionFilter = element.dataset.transactionFilter;
+      saveState();
+      render();
+      return false;
+    }
+
+    if (element.dataset?.action) {
+      handleAction(element.dataset.action, element);
+      return false;
+    }
+
+    return false;
+  }
+
+  window.lipInTapFromElement = lipInTapFromElement;
 
   sheetRoot.addEventListener("pointerup", handleSheetInteraction);
   sheetRoot.addEventListener("click", handleSheetInteraction);
