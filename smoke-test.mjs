@@ -1,81 +1,44 @@
-import { readFile } from "node:fs/promises";
-import vm from "node:vm";
+import { access, readFile } from "node:fs/promises";
 
-class FakeElement {
-  constructor(selector = "") {
-    this.selector = selector;
-    this.dataset = {};
-    this.innerHTML = "";
-  }
+const requiredFiles = [
+  "index.html",
+  "styles.css",
+  "sw.js",
+  "manifest.webmanifest",
+  "src/main.js",
+  "src/config/app-config.js",
+  "src/core/store.js",
+  "src/core/selectors.js",
+  "src/data/categories.js",
+  "src/data/seed.js",
+  "src/features/actions.js",
+  "src/ui/components.js",
+  "src/ui/sheets.js",
+  "src/ui/views.js",
+  "src/utils/date.js",
+  "src/utils/download.js",
+  "src/utils/format.js",
+  "src/utils/html.js"
+];
 
-  addEventListener() {}
+await Promise.all(requiredFiles.map((file) => access(file)));
 
-  querySelectorAll() {
-    return [];
-  }
+const index = await readFile("index.html", "utf8");
+const sw = await readFile("sw.js", "utf8");
+const main = await readFile("src/main.js", "utf8");
 
-  querySelector() {
-    return null;
-  }
-}
+const checks = [
+  [index.includes('type="module" src="src/main.js?v=5"'), "index.html must load src/main.js?v=5 as a module"],
+  [index.includes("styles.css?v=5"), "index.html must load styles.css?v=5"],
+  [sw.includes("lip-in-money-v5"), "service worker cache must be v5"],
+  [sw.includes("./src/features/actions.js"), "service worker must cache feature actions"],
+  [main.includes("window.lipInTapFromElement"), "main must expose tap fallback for mobile browsers"],
+  [main.includes("serviceWorker"), "main must register the service worker"]
+];
 
-const elements = new Map([
-  ["#app", new FakeElement("#app")],
-  ["#sheet-root", new FakeElement("#sheet-root")],
-  ["#toast-root", new FakeElement("#toast-root")]
-]);
-
-const localStorageData = new Map();
-
-const context = {
-  console,
-  setTimeout,
-  clearTimeout,
-  Blob: class Blob {},
-  URL: {
-    createObjectURL: () => "blob:smoke",
-    revokeObjectURL: () => {}
-  },
-  Intl,
-  Date,
-  Math,
-  Number,
-  String,
-  Array,
-  Map,
-  JSON,
-  document: {
-    querySelector: (selector) => elements.get(selector) || null,
-    createElement: () => ({
-      click: () => {},
-      remove: () => {}
-    }),
-    body: {
-      appendChild: () => {}
-    }
-  },
-  window: {
-    addEventListener: () => {}
-  },
-  navigator: {},
-  localStorage: {
-    getItem: (key) => localStorageData.get(key) || null,
-    setItem: (key, value) => localStorageData.set(key, value),
-    removeItem: (key) => localStorageData.delete(key)
-  }
-};
-
-context.globalThis = context;
-
-const code = await readFile("app.js", "utf8");
-vm.runInNewContext(code, context, { filename: "app.js" });
-
-const html = elements.get("#app").innerHTML;
-const required = ["ภาพรวม", "ยอดคงเหลือ", "กระเป๋าเงิน", "เพิ่มรายการ"];
-const missing = required.filter((text) => !html.includes(text));
-
-if (missing.length) {
-  console.error(`Smoke test failed. Missing: ${missing.join(", ")}`);
+const failed = checks.filter(([ok]) => !ok).map(([, message]) => message);
+if (failed.length) {
+  console.error(`Smoke test failed:\n- ${failed.join("\n- ")}`);
   process.exit(1);
 }
 

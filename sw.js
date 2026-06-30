@@ -1,9 +1,22 @@
-const CACHE_NAME = "lip-in-money-v4";
+const CACHE_NAME = "lip-in-money-v5";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=4",
-  "./app.js?v=4",
+  "./styles.css?v=5",
+  "./src/main.js?v=5",
+  "./src/config/app-config.js",
+  "./src/core/selectors.js",
+  "./src/core/store.js",
+  "./src/data/categories.js",
+  "./src/data/seed.js",
+  "./src/features/actions.js",
+  "./src/ui/components.js",
+  "./src/ui/sheets.js",
+  "./src/ui/views.js",
+  "./src/utils/date.js",
+  "./src/utils/download.js",
+  "./src/utils/format.js",
+  "./src/utils/html.js",
   "./manifest.webmanifest",
   "./assets/icon.svg"
 ];
