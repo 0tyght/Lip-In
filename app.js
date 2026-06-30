@@ -2,8 +2,8 @@
   "use strict";
 
   const url = new URL(window.location.href);
-  if (url.searchParams.get("v") !== "7") {
-    url.searchParams.set("v", "7");
+  if (url.searchParams.get("v") !== "8") {
+    url.searchParams.set("v", "8");
     window.location.replace(url.toString());
   }
 })();

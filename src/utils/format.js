@@ -5,6 +5,17 @@ export function formatMoney(value) {
   }).format(Number(value) || 0)} บาท`;
 }
 
+export function formatMoneyNumber(value) {
+  return new Intl.NumberFormat("th-TH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3
+  }).format(Number(value) || 0);
+}
+
+export function formatMoneyHtml(value) {
+  return `<span class="money-inline"><span class="money-number">${formatMoneyNumber(value)}</span><span class="money-unit">บาท</span></span>`;
+}
+
 export function formatPercent(value) {
   return `${new Intl.NumberFormat("th-TH", {
     maximumFractionDigits: 1

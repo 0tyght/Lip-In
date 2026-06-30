@@ -1,7 +1,7 @@
 import { allCategories } from "../core/selectors.js";
 import { toISODate } from "../utils/date.js";
 import { escapeHtml, optionList } from "../utils/html.js";
-import { formatMoney } from "../utils/format.js";
+import { formatMoneyHtml } from "../utils/format.js";
 import { typeLabel } from "./components.js";
 
 export function categoryOptions(state, selected = "food") {
@@ -288,7 +288,7 @@ export function renderScanItems(items) {
   return items.map((item) => `
     <div class="scan-item">
       <div class="transaction-main"><span class="category-icon">🍜</span><div><strong>${escapeHtml(item.title)}</strong><div class="muted">อาหาร · ใบเสร็จที่ 1</div></div></div>
-      <strong class="bad">${formatMoney(item.amount)}</strong>
+      <strong class="bad">${formatMoneyHtml(item.amount)}</strong>
     </div>
   `).join("");
 }

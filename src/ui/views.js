@@ -1,9 +1,19 @@
 import { APP_VERSION, bottomViews, reportRanges, reportTabs, topViews, transactionFilters } from "../config/app-config.js";
-import { allCategories, assetTotal, donutStops, expenseByCategory, totalByType } from "../core/selectors.js";
+import { allCategories, assetTotal, expenseByCategory, totalByType } from "../core/selectors.js";
 import { defaultTransactionAdvancedFilters, filteredTransactions } from "../core/transactions.js";
 import { offsetDate, formatDate } from "../utils/date.js";
-import { clamp, formatMoney, formatPercent } from "../utils/format.js";
+import { clamp, formatMoneyHtml, formatPercent } from "../utils/format.js";
 import { escapeHtml } from "../utils/html.js";
+import {
+  renderBudgetComparisonChart,
+  renderCashFlowChart,
+  renderCashTrendChart,
+  renderExpenseDonutChart,
+  renderLoanStackedChart,
+  renderMonthlyGroupedBarChart,
+  renderNetWorthAreaChart,
+  renderSpendingHeatmap
+} from "./charts.js";
 import {
   renderAllocationItem,
   renderAssetRow,
@@ -39,7 +49,6 @@ function renderHeader(state) {
         </div>
         <div class="header-actions">
           <button class="icon-btn" type="button" data-action="open-receipt" aria-label="สแกนใบเสร็จ">📷</button>
-          <button class="install-btn" type="button" data-action="install-pwa" aria-label="ติดตั้ง PWA">ติดตั้ง</button>
         </div>
       </div>
       <nav class="top-nav" aria-label="เมนูหลัก">
@@ -111,7 +120,7 @@ function renderQuickAmounts(state) {
     <div class="quick-amounts" aria-label="บันทึกเร็ว">
       ${amounts.map((amount) => `
         <button class="quick-amount" type="button" data-action="quick-add" data-amount="${amount}" data-wallet-id="${quick.walletId}" data-category-id="${quick.categoryId}">
-          <span>-${formatMoney(amount)}</span>
+          <span>-${formatMoneyHtml(amount)}</span>
           <small>บันทึกเร็ว</small>
         </button>
       `).join("")}
@@ -174,8 +183,8 @@ function renderOverview(state) {
         <div class="metric-top">
           <div>
             <p class="label">ยอดคงเหลือ <span class="tag">6 กระเป๋า</span></p>
-            <p class="money xl">${formatMoney(totalBalance)}</p>
-            <p class="label">ค่าใช้จ่ายรายวัน ${formatPercent(ratio)} <strong>${formatMoney(todayExpense)} / ${formatMoney(state.dailyLimit)}</strong></p>
+            <p class="money xl">${formatMoneyHtml(totalBalance)}</p>
+            <p class="label">ค่าใช้จ่ายรายวัน ${formatPercent(ratio)} <strong class="nowrap">${formatMoneyHtml(todayExpense)} / ${formatMoneyHtml(state.dailyLimit)}</strong></p>
           </div>
           <div class="assistant-bubble">แมวเงินดูแลแล้วนะ</div>
         </div>
@@ -185,11 +194,15 @@ function renderOverview(state) {
           <span class="pink" style="width:${Math.max(0, Math.min((ratio - 0.78) * 58, 17))}%"></span>
         </div>
         <div class="summary-grid">
-          <div class="summary-item"><p class="money md bad">${formatMoney(todayExpense)}</p><p class="label">รายจ่ายวันนี้</p></div>
-          <div class="summary-item"><p class="money md good">${formatMoney(todayIncome)}</p><p class="label">รายรับวันนี้</p></div>
-          <div class="summary-item"><p class="money md">${formatMoney(todayTransfer)}</p><p class="label">โอนเงินวันนี้</p></div>
+          <div class="summary-item"><p class="money md bad">${formatMoneyHtml(todayExpense)}</p><p class="label">รายจ่ายวันนี้</p></div>
+          <div class="summary-item"><p class="money md good">${formatMoneyHtml(todayIncome)}</p><p class="label">รายรับวันนี้</p></div>
+          <div class="summary-item"><p class="money md">${formatMoneyHtml(todayTransfer)}</p><p class="label">โอนเงินวันนี้</p></div>
         </div>
       </article>
+
+      ${renderCashTrendChart(state)}
+      ${renderExpenseDonutChart(state)}
+      ${renderBudgetComparisonChart(state)}
 
       ${renderQuickAmounts(state)}
 
@@ -222,7 +235,6 @@ function renderReports(state) {
 function renderCategoryReport(state) {
   const rows = expenseByCategory(state);
   const total = rows.reduce((sum, row) => sum + row.amount, 0);
-  const stops = donutStops(rows, total);
 
   return `
     <section class="view">
@@ -233,18 +245,13 @@ function renderCategoryReport(state) {
           </button>
         `).join("")}
       </div>
-      <article class="chart-card">
-        <div class="donut-wrap" style="--donut-stops:${stops}">
-          <div class="donut" aria-label="สัดส่วนรายจ่ายตามหมวดหมู่"></div>
-          <div class="donut-center"><div><strong>${formatMoney(total)}</strong><span class="muted">เดือนนี้</span></div></div>
-        </div>
-      </article>
+      ${renderExpenseDonutChart(state, "รายจ่ายตามหมวด", "โดนัทพร้อม legend ที่แตะอ่านค่าได้")}
       <div class="section-title"><h2>แยกตามหมวดหมู่</h2><button class="section-action" type="button" data-action="export-csv">ส่งออก</button></div>
       <table class="table">
         <thead><tr><th>หมวดหมู่</th><th>ร้อยละ</th><th>จำนวน</th></tr></thead>
         <tbody>
           ${rows.map((row) => `
-            <tr><td>${row.icon} ${escapeHtml(row.name)}</td><td>${total ? Math.round((row.amount / total) * 100) : 0}%</td><td>${formatMoney(row.amount)}</td></tr>
+            <tr><td>${row.icon} ${escapeHtml(row.name)}</td><td>${total ? Math.round((row.amount / total) * 100) : 0}%</td><td>${formatMoneyHtml(row.amount)}</td></tr>
           `).join("")}
         </tbody>
       </table>
@@ -259,11 +266,12 @@ function renderNetWorthReport(state) {
 
   return `
     <section class="view">
+      ${renderNetWorthAreaChart(state)}
       <article class="card">
-        <div class="asset-row"><div class="asset-main"><span class="category-icon">🌿</span><strong>ทรัพย์สินสุทธิ</strong></div><p class="money lg good">${formatMoney(assets - creditDebt - loanDebt)}</p></div>
-        <div class="asset-row"><div class="asset-main"><span class="category-icon">👛</span><span>ทรัพย์สิน</span></div><p class="money md good">${formatMoney(assets)}</p></div>
-        <div class="asset-row"><div class="asset-main"><span class="category-icon">💳</span><span>หนี้สินบัตรเครดิต</span></div><p class="money md bad">${formatMoney(creditDebt)}</p></div>
-        <div class="asset-row"><div class="asset-main"><span class="category-icon">🏠</span><span>หนี้สินผ่อนชำระ</span></div><p class="money md bad">${formatMoney(loanDebt)}</p></div>
+        <div class="asset-row"><div class="asset-main"><span class="category-icon">🌿</span><strong>ทรัพย์สินสุทธิ</strong></div><p class="money lg good">${formatMoneyHtml(assets - creditDebt - loanDebt)}</p></div>
+        <div class="asset-row"><div class="asset-main"><span class="category-icon">👛</span><span>ทรัพย์สิน</span></div><p class="money md good">${formatMoneyHtml(assets)}</p></div>
+        <div class="asset-row"><div class="asset-main"><span class="category-icon">💳</span><span>หนี้สินบัตรเครดิต</span></div><p class="money md bad">${formatMoneyHtml(creditDebt)}</p></div>
+        <div class="asset-row"><div class="asset-main"><span class="category-icon">🏠</span><span>หนี้สินผ่อนชำระ</span></div><p class="money md bad">${formatMoneyHtml(loanDebt)}</p></div>
       </article>
       <div class="section-title"><h2>ทรัพย์สิน</h2></div>
       <div class="asset-list">${state.wallets.filter((wallet) => !wallet.liability).map(renderAssetRow).join("")}</div>
@@ -281,10 +289,13 @@ function renderTimeReport(state) {
 
   return `
     <section class="view">
+      ${renderMonthlyGroupedBarChart(state)}
+      ${renderCashFlowChart(state)}
+      ${renderSpendingHeatmap(state)}
       <div class="section-title"><h2>รายจ่าย 7 วัน</h2></div>
       ${days.map((day) => `
         <div class="allocation-item">
-          <div class="allocation-head"><strong>${formatDate(day.date)}</strong><span>${formatMoney(day.expense)}</span></div>
+          <div class="allocation-head"><strong>${formatDate(day.date)}</strong><span>${formatMoneyHtml(day.expense)}</span></div>
           <div class="mini-bar"><span style="width:${(day.expense / max) * 100}%; --bar-color:#ff9aa8"></span></div>
         </div>
       `).join("")}
@@ -303,7 +314,7 @@ function renderSourceReport(state) {
       <div class="section-title"><h2>ช่องทางบันทึก</h2></div>
       ${rows.map((row) => `
         <div class="allocation-item">
-          <div class="allocation-head"><strong>${sourceLabel(row.source)}</strong><span>${formatMoney(row.amount)}</span></div>
+          <div class="allocation-head"><strong>${sourceLabel(row.source)}</strong><span>${formatMoneyHtml(row.amount)}</span></div>
           <div class="mini-bar"><span style="width:${Math.min(row.amount / 80, 100)}%; --bar-color:#9ccc87"></span></div>
         </div>
       `).join("")}
@@ -315,6 +326,7 @@ function renderBudget(state) {
   return `
     <section class="view">
       <div class="section-title"><h2>งบประมาณ</h2><button class="section-action" type="button" data-action="open-budget">+ เพิ่ม</button></div>
+      ${renderBudgetComparisonChart(state)}
       <div class="budget-list">${state.budgets.map((budget) => renderBudgetCard(state, budget)).join("")}</div>
       <div class="section-title"><h2>หมวดหมู่</h2><button class="section-action" type="button" data-action="open-category">+ เพิ่ม</button></div>
       <div class="category-grid">${allCategories(state).slice(0, 28).map(renderCategoryTile).join("")}</div>
@@ -326,6 +338,7 @@ function renderLoans(state) {
   return `
     <section class="view">
       <div class="section-title"><h2>ผ่อนชำระ</h2><button class="section-action" type="button" data-action="open-loan">+ เพิ่ม</button></div>
+      ${renderLoanStackedChart(state)}
       <div class="loan-list">${state.loans.map(renderLoanCard).join("")}</div>
     </section>
   `;
@@ -348,10 +361,10 @@ function renderWallets(state) {
   return `
     <section class="view">
       <article class="card">
-        <div class="section-title"><h2>ทรัพย์สินสุทธิ</h2><p class="money lg good">${formatMoney(assets - debt - loanDebt)}</p></div>
-        <div class="asset-row"><div class="asset-main"><span class="category-icon">👛</span><span>ทรัพย์สิน</span></div><strong class="good">${formatMoney(assets)}</strong></div>
-        <div class="asset-row"><div class="asset-main"><span class="category-icon">💳</span><span>หนี้สินบัตรเครดิต</span></div><strong class="bad">${formatMoney(debt)}</strong></div>
-        <div class="asset-row"><div class="asset-main"><span class="category-icon">🏠</span><span>หนี้สินผ่อนชำระ</span></div><strong class="bad">${formatMoney(loanDebt)}</strong></div>
+        <div class="section-title"><h2>ทรัพย์สินสุทธิ</h2><p class="money lg good">${formatMoneyHtml(assets - debt - loanDebt)}</p></div>
+        <div class="asset-row"><div class="asset-main"><span class="category-icon">👛</span><span>ทรัพย์สิน</span></div><strong class="good">${formatMoneyHtml(assets)}</strong></div>
+        <div class="asset-row"><div class="asset-main"><span class="category-icon">💳</span><span>หนี้สินบัตรเครดิต</span></div><strong class="bad">${formatMoneyHtml(debt)}</strong></div>
+        <div class="asset-row"><div class="asset-main"><span class="category-icon">🏠</span><span>หนี้สินผ่อนชำระ</span></div><strong class="bad">${formatMoneyHtml(loanDebt)}</strong></div>
       </article>
       <div class="section-title"><h2>กระเป๋าเงิน</h2><button class="section-action" type="button" data-action="open-wallet">+ เพิ่ม</button></div>
       <div class="wallet-grid">${state.wallets.map(renderWalletCard).join("")}</div>
@@ -423,7 +436,7 @@ function renderMenu(state) {
         </button>
         <button class="menu-row" type="button" data-action="open-allocation">
           <span class="menu-icon">🧮</span>
-          <span class="menu-copy"><strong>แบ่งสัดส่วนเงิน</strong><span>${formatMoney(state.expectedIncome)}</span></span>
+          <span class="menu-copy"><strong>แบ่งสัดส่วนเงิน</strong><span>${formatMoneyHtml(state.expectedIncome)}</span></span>
         </button>
         <button class="menu-row" type="button" data-action="check-update">
           <span class="menu-icon">↻</span>

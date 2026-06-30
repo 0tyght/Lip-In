@@ -607,6 +607,13 @@ export function createActions({
     toast("รีเซ็ตข้อมูลเดโมแล้ว");
   }
 
+  function showChartDetail(button) {
+    const title = button?.dataset?.title || "กราฟ";
+    const value = button?.dataset?.value || "";
+    const note = button?.dataset?.note || "";
+    toast([title, value, note].filter(Boolean).join(" · "));
+  }
+
   function handleAction(action, button = null) {
     const id = button?.dataset?.id || "";
     switch (action) {
@@ -630,6 +637,9 @@ export function createActions({
         break;
       case "clear-transaction-filters":
         clearTransactionFilters();
+        break;
+      case "chart-detail":
+        showChartDetail(button);
         break;
       case "apply-transaction-filters":
         handleAppSubmit(button?.closest("#transaction-filter-form"));

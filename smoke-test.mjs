@@ -13,6 +13,7 @@ const requiredFiles = [
   "src/data/categories.js",
   "src/data/seed.js",
   "src/features/actions.js",
+  "src/ui/charts.js",
   "src/ui/components.js",
   "src/ui/sheets.js",
   "src/ui/views.js",
@@ -30,13 +31,14 @@ const main = await readFile("src/main.js", "utf8");
 const config = await readFile("src/config/app-config.js", "utf8");
 
 const checks = [
-  [index.includes('type="module" src="src/main.js?v=7"'), "index.html must load src/main.js?v=7 as a module"],
-  [index.includes("styles.css?v=7"), "index.html must load styles.css?v=7"],
-  [sw.includes("lip-in-money-v7"), "service worker cache must be v7"],
+  [index.includes('type="module" src="src/main.js?v=8"'), "index.html must load src/main.js?v=8 as a module"],
+  [index.includes("styles.css?v=8"), "index.html must load styles.css?v=8"],
+  [sw.includes("lip-in-money-v8"), "service worker cache must be v8"],
   [sw.includes("networkFirst"), "service worker must prefer network updates"],
   [sw.includes("client.navigate"), "service worker must refresh old controlled pages after activation"],
   [config.includes('STORAGE_KEY = "lip-in-money-state"'), "storage key must be stable across app versions"],
   [sw.includes("./src/core/transactions.js"), "service worker must cache transaction helpers"],
+  [sw.includes("./src/ui/charts.js"), "service worker must cache chart views"],
   [sw.includes("./src/features/actions.js"), "service worker must cache feature actions"],
   [main.includes("window.lipInTapFromElement"), "main must expose tap fallback for mobile browsers"],
   [main.includes("controllerchange"), "main must reload when a new service worker activates"],

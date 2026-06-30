@@ -1,6 +1,6 @@
 import { getCategory } from "../core/selectors.js";
 import { formatDate } from "../utils/date.js";
-import { clamp, formatMoney } from "../utils/format.js";
+import { clamp, formatMoneyHtml } from "../utils/format.js";
 import { escapeHtml } from "../utils/html.js";
 
 export function renderWalletCard(wallet) {
@@ -9,7 +9,7 @@ export function renderWalletCard(wallet) {
       <span class="wallet-icon">${wallet.icon}</span>
       <div>
         <p class="wallet-name">${escapeHtml(wallet.name)}</p>
-        <p class="money md ${wallet.balance < 0 ? "bad" : ""}">${formatMoney(Math.abs(wallet.balance))}</p>
+        <p class="money md ${wallet.balance < 0 ? "bad" : ""}">${formatMoneyHtml(Math.abs(wallet.balance))}</p>
       </div>
       <div class="inline-actions">
         <button class="tiny-btn" type="button" data-action="edit-wallet" data-id="${wallet.id}">แก้ไข</button>
@@ -25,7 +25,7 @@ export function renderAllocationItem(state, item) {
     <article class="allocation-item">
       <div class="allocation-head">
         <strong>${escapeHtml(item.name)}</strong>
-        <span>${item.percent}% · ${formatMoney(amount)}</span>
+        <span>${item.percent}% · ${formatMoneyHtml(amount)}</span>
       </div>
       <div class="mini-bar"><span style="width:${item.percent}%; --bar-color:${item.color}"></span></div>
     </article>
@@ -66,7 +66,7 @@ export function renderTransactionRow(state, tx) {
         </div>
       </div>
       <div class="row-actions">
-        <div class="transaction-amount ${amountClass}">${sign}${formatMoney(tx.amount)}</div>
+        <div class="transaction-amount ${amountClass}">${sign}${formatMoneyHtml(tx.amount)}</div>
         <button class="tiny-btn" type="button" data-action="duplicate-transaction" data-id="${tx.id}" aria-label="คัดลอก ${escapeHtml(tx.title)}">คัดลอก</button>
         <button class="tiny-btn" type="button" data-action="edit-transaction" data-id="${tx.id}" aria-label="แก้ไข ${escapeHtml(tx.title)}">แก้ไข</button>
         <button class="tiny-btn danger" type="button" data-action="delete-transaction" data-id="${tx.id}" aria-label="ลบ ${escapeHtml(tx.title)}">ลบ</button>
@@ -90,7 +90,7 @@ function renderTransactionRowLegacy(state, tx) {
         </div>
       </div>
       <div class="row-actions">
-        <div class="transaction-amount ${amountClass}">${sign}${formatMoney(tx.amount)}</div>
+        <div class="transaction-amount ${amountClass}">${sign}${formatMoneyHtml(tx.amount)}</div>
         <button class="tiny-btn" type="button" data-action="edit-transaction" data-id="${tx.id}" aria-label="แก้ไข ${escapeHtml(tx.title)}">แก้ไข</button>
         <button class="tiny-btn danger" type="button" data-action="delete-transaction" data-id="${tx.id}" aria-label="ลบ ${escapeHtml(tx.title)}">ลบ</button>
       </div>
@@ -102,7 +102,7 @@ export function renderAssetRow(wallet) {
   return `
     <article class="asset-row">
       <div class="asset-main"><span class="category-icon">${wallet.icon}</span><strong>${escapeHtml(wallet.name)}</strong></div>
-      <p class="money md good">${formatMoney(wallet.balance)}</p>
+      <p class="money md good">${formatMoneyHtml(wallet.balance)}</p>
     </article>
   `;
 }
@@ -130,9 +130,9 @@ export function renderBudgetCard(state, budget) {
       </div>
       <div class="mini-bar"><span style="width:${Math.min(ratio * 100, 100)}%; --bar-color:${ratio > 1 ? "#f778a2" : category.color}"></span></div>
       <div class="budget-stats">
-        <div class="stat-box"><div class="muted">ใช้แล้ว</div><strong class="bad">${formatMoney(spent)}</strong></div>
-        <div class="stat-box"><div class="muted">คงเหลือ</div><strong class="good">${formatMoney(remaining)}</strong></div>
-        <div class="stat-box"><div class="muted">งบ</div><strong>${formatMoney(budget.amount)}</strong></div>
+        <div class="stat-box"><div class="muted">ใช้แล้ว</div><strong class="bad">${formatMoneyHtml(spent)}</strong></div>
+        <div class="stat-box"><div class="muted">คงเหลือ</div><strong class="good">${formatMoneyHtml(remaining)}</strong></div>
+        <div class="stat-box"><div class="muted">งบ</div><strong>${formatMoneyHtml(budget.amount)}</strong></div>
       </div>
     </article>
   `;
@@ -157,15 +157,15 @@ export function renderLoanCard(loan) {
         </div>
       </div>
       <div class="loan-stats">
-        <div class="stat-box"><div class="muted">จ่ายไปแล้ว</div><strong class="good">${formatMoney(loan.paidPrincipal)}</strong></div>
-        <div class="stat-box"><div class="muted">คงเหลือ</div><strong>${formatMoney(balance)}</strong></div>
-        <div class="stat-box"><div class="muted">เงินต้น</div><strong>${formatMoney(loan.principal)}</strong></div>
+        <div class="stat-box"><div class="muted">จ่ายไปแล้ว</div><strong class="good">${formatMoneyHtml(loan.paidPrincipal)}</strong></div>
+        <div class="stat-box"><div class="muted">คงเหลือ</div><strong>${formatMoneyHtml(balance)}</strong></div>
+        <div class="stat-box"><div class="muted">เงินต้น</div><strong>${formatMoneyHtml(loan.principal)}</strong></div>
       </div>
       <div class="mini-bar"><span style="width:${ratio * 100}%; --bar-color:#ff8168"></span></div>
       <div class="loan-detail">
         <div class="allocation-head"><span>การคิดดอกเบี้ย</span><span class="tag green">ลดต้นลดดอก</span></div>
-        <div class="asset-row"><span>ดอกเบี้ยที่จ่ายแล้ว</span><strong class="good">${formatMoney(loan.interestPaid)}</strong></div>
-        <div class="asset-row"><span>ค่างวดงวดถัดไป</span><strong>${formatMoney(loan.nextPayment)}</strong></div>
+        <div class="asset-row"><span>ดอกเบี้ยที่จ่ายแล้ว</span><strong class="good">${formatMoneyHtml(loan.interestPaid)}</strong></div>
+        <div class="asset-row"><span>ค่างวดงวดถัดไป</span><strong>${formatMoneyHtml(loan.nextPayment)}</strong></div>
       </div>
       <div class="installment-grid">
         ${Array.from({ length: loan.totalTerms }, (_, index) => `<span class="installment-pill ${index < loan.paidTerms ? "paid" : ""}">${index + 1}</span>`).join("")}
@@ -179,13 +179,13 @@ export function renderGoalCard(goal) {
 
   return `
     <article class="goal-card">
-      <span class="category-icon">${goal.icon}</span>
+      <span class="goal-progress-ring" style="--goal-progress:${ratio * 100}%"><span>${goal.icon}</span></span>
       <div>
         <strong>${escapeHtml(goal.name)}</strong>
         <div class="muted">ครบ ${escapeHtml(goal.due)}</div>
       </div>
       <div class="mini-bar"><span style="width:${ratio * 100}%; --bar-color:#91c36b"></span></div>
-      <div class="allocation-head"><span>${formatMoney(goal.saved)}</span><strong>${Math.round(ratio * 100)}%</strong></div>
+      <div class="allocation-head"><span>${formatMoneyHtml(goal.saved)}</span><strong>${Math.round(ratio * 100)}%</strong></div>
       <div class="inline-actions">
         <button class="tiny-btn" type="button" data-action="deposit-goal" data-id="${goal.id}">เติมเงิน</button>
         <button class="tiny-btn" type="button" data-action="edit-goal" data-id="${goal.id}">แก้ไข</button>

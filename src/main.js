@@ -39,12 +39,17 @@ function render(options = {}) {
   app.dataset.theme = state.theme;
   app.dataset.view = state.view;
   app.dataset.version = APP_VERSION;
+  updateScrollState();
   app.innerHTML = renderApp(state);
   bindControls(app);
 
   if (options.scrollTop) {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
   }
+}
+
+function updateScrollState() {
+  app.dataset.scrolled = window.scrollY > 18 ? "true" : "false";
 }
 
 function openSheet(html) {
@@ -282,4 +287,5 @@ window.addEventListener("beforeinstallprompt", (event) => {
   deferredInstallPrompt = event;
 });
 
+window.addEventListener("scroll", updateScrollState, { passive: true });
 window.addEventListener("load", registerServiceWorker);
