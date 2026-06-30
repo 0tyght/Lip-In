@@ -241,8 +241,8 @@ button {
   border-radius: var(--pill);
   min-height: 34px;
   padding: 7px 13px;
-  background: rgba(255, 255, 255, 0.45);
-  color: rgba(95, 85, 78, 0.82);
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(75, 65, 58, 0.92);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -397,7 +397,8 @@ button {
 }
 
 .money.xl {
-  font-size: 31px;
+  font-size: clamp(20px, 6vw, 28px);
+  word-break: break-word;
 }
 
 .money.lg {
