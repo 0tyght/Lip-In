@@ -1,9 +1,9 @@
-const CACHE_NAME = "lip-in-money-v5";
+const CACHE_NAME = "lip-in-money-v6";
 const APP_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=5",
-  "./src/main.js?v=5",
+  "./styles.css?v=6",
+  "./src/main.js?v=6",
   "./src/config/app-config.js",
   "./src/core/selectors.js",
   "./src/core/store.js",
@@ -28,23 +28,48 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    )
+    caches.keys()
+      .then(async (keys) => {
+        const oldCaches = keys.filter((key) => key.startsWith("lip-in-money-") && key !== CACHE_NAME);
+        await Promise.all(oldCaches.map((key) => caches.delete(key)));
+        await self.clients.claim();
+
+        if (!oldCaches.length) return;
+        const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+        await Promise.all(clients.map((client) => client.navigate(client.url)));
+      })
   );
-  self.clients.claim();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      });
-    })
-  );
+
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(networkFirst(event.request, "./index.html"));
+    return;
+  }
+
+  event.respondWith(networkFirst(event.request));
 });
+
+async function networkFirst(request, fallbackUrl = null) {
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    if (fallbackUrl) return cache.match(fallbackUrl);
+    throw new Error("Offline asset unavailable");
+  }
+}

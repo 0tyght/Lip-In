@@ -73,16 +73,16 @@ export function renderReceiptSheet(state, sampleItems) {
 
 export function renderBankSheet(state) {
   return `
-    <div class="sheet-head"><h2>เชื่อมธนาคาร</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
+    <div class="sheet-head"><h2>ธนาคาร</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
     <div class="form-grid">
       <article class="card bank-card">
-        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>Sandbox Connector</strong><div class="muted">${state.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(state.lastSyncedAt)}` : "ยังไม่เคยซิงก์"}</div></div></div>
+        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>Sandbox</strong><div class="muted">${state.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(state.lastSyncedAt)}` : "ยังไม่เคยซิงก์"}</div></div></div>
         <button class="primary-btn" type="button" data-action="sync-bank">ซิงก์ข้อมูลตัวอย่าง</button>
       </article>
       <div class="allocation-list">
-        <div class="allocation-item"><div class="allocation-head"><strong>Kasikorn</strong><span class="tag">OAuth</span></div><div class="mini-bar"><span style="width:64%; --bar-color:#91c36b"></span></div></div>
-        <div class="allocation-item"><div class="allocation-head"><strong>SCB</strong><span class="tag">API</span></div><div class="mini-bar"><span style="width:48%; --bar-color:#ffc022"></span></div></div>
-        <div class="allocation-item"><div class="allocation-head"><strong>PromptPay</strong><span class="tag">QR/Statement</span></div><div class="mini-bar"><span style="width:82%; --bar-color:#f778a2"></span></div></div>
+        <div class="allocation-item"><div class="allocation-head"><strong>นำเข้า statement</strong><span class="tag green">พร้อมออกแบบ</span></div><div class="mini-bar"><span style="width:64%; --bar-color:#91c36b"></span></div></div>
+        <div class="allocation-item"><div class="allocation-head"><strong>Open banking</strong><span class="tag">รอ API จริง</span></div><div class="mini-bar"><span style="width:48%; --bar-color:#ffc022"></span></div></div>
+        <div class="allocation-item"><div class="allocation-head"><strong>PromptPay / QR</strong><span class="tag">รอเชื่อมต่อ</span></div><div class="mini-bar"><span style="width:82%; --bar-color:#f778a2"></span></div></div>
       </div>
     </div>
   `;

@@ -55,6 +55,7 @@
 html {
   min-height: 100%;
   background: var(--bg);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -76,6 +77,8 @@ textarea {
 
 button {
   color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .app-shell {
@@ -272,6 +275,18 @@ button {
 .view {
   display: grid;
   gap: 12px;
+  animation: view-in 0.16s ease-out;
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0.72;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card,
@@ -481,6 +496,15 @@ button {
   padding: 8px;
   cursor: pointer;
   color: var(--ink);
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.quick-action:active,
+.menu-row:active,
+.nav-tab:active,
+.chip:active,
+.bottom-item:active {
+  transform: scale(0.98);
 }
 
 .quick-action span:last-child {
@@ -754,6 +778,61 @@ button {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.2;
+}
+
+.category-grid.is-compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.menu-list {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-row {
+  width: 100%;
+  min-height: 64px;
+  border: 1px solid rgba(95, 85, 78, 0.07);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.78);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.menu-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(95, 85, 78, 0.08);
+}
+
+.menu-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.menu-copy strong,
+.menu-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-copy span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .bottom-nav {
@@ -1124,5 +1203,21 @@ button {
   .budget-stats,
   .loan-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .view,
+  .toast {
+    animation: none;
+  }
+
+  .quick-action,
+  .menu-row {
+    transition: none;
   }
 }

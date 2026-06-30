@@ -1,4 +1,4 @@
-import { bottomViews, reportRanges, reportTabs, topViews, transactionFilters } from "../config/app-config.js";
+import { APP_VERSION, bottomViews, reportRanges, reportTabs, topViews, transactionFilters } from "../config/app-config.js";
 import { allCategories, assetTotal, donutStops, expenseByCategory, totalByType } from "../core/selectors.js";
 import { offsetDate, formatDate } from "../utils/date.js";
 import { clamp, formatMoney, formatPercent } from "../utils/format.js";
@@ -10,6 +10,7 @@ import {
   renderCategoryTile,
   renderGoalCard,
   renderLoanCard,
+  sourceLabel,
   renderTransactionRow,
   renderWalletCard
 } from "./components.js";
@@ -70,7 +71,7 @@ function renderBottomNav(state) {
     <nav class="bottom-nav" aria-label="เมนูล่าง">
       ${bottomViews.map((item) => {
         if (item.id === "add") return `<span class="bottom-item" aria-hidden="true"></span>`;
-        const active = state.view === item.id || (item.id === "overview" && state.view === "reports");
+        const active = state.view === item.id;
         return `
           <button class="bottom-item ${active ? "is-active" : ""}" type="button" data-view="${item.id}">
             <span>${item.icon}</span><span>${item.label}</span>
@@ -154,7 +155,7 @@ function renderOverview(state) {
 function renderReports(state) {
   if (state.reportTab === "networth") return renderNetWorthReport(state);
   if (state.reportTab === "time") return renderTimeReport(state);
-  if (state.reportTab === "tag") return renderTagReport(state);
+  if (state.reportTab === "source" || state.reportTab === "tag") return renderSourceReport(state);
   return renderCategoryReport(state);
 }
 
@@ -231,7 +232,7 @@ function renderTimeReport(state) {
   `;
 }
 
-function renderTagReport(state) {
+function renderSourceReport(state) {
   const rows = ["manual", "bank", "receipt"].map((source) => ({
     source,
     amount: state.transactions.filter((tx) => tx.source === source && tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0)
@@ -239,10 +240,10 @@ function renderTagReport(state) {
 
   return `
     <section class="view">
-      <div class="section-title"><h2>ตามแท็ก</h2></div>
+      <div class="section-title"><h2>ช่องทางบันทึก</h2></div>
       ${rows.map((row) => `
         <div class="allocation-item">
-          <div class="allocation-head"><strong>${row.source}</strong><span>${formatMoney(row.amount)}</span></div>
+          <div class="allocation-head"><strong>${sourceLabel(row.source)}</strong><span>${formatMoney(row.amount)}</span></div>
           <div class="mini-bar"><span style="width:${Math.min(row.amount / 80, 100)}%; --bar-color:#9ccc87"></span></div>
         </div>
       `).join("")}
@@ -323,24 +324,56 @@ function renderTransactions(state) {
 }
 
 function renderMenu(state) {
+  const categoryPreview = allCategories(state).slice(0, 12);
+
   return `
     <section class="view">
-      <div class="section-title"><h2>ธีมสีพื้นหลัง</h2></div>
+      <div class="section-title"><h2>เมนู</h2><span class="tag">v${APP_VERSION}</span></div>
+      <div class="menu-list">
+        <button class="menu-row" type="button" data-action="open-bank">
+          <span class="menu-icon">🏦</span>
+          <span class="menu-copy"><strong>ธนาคาร</strong><span>Sandbox</span></span>
+        </button>
+        <button class="menu-row" type="button" data-action="open-allocation">
+          <span class="menu-icon">🧮</span>
+          <span class="menu-copy"><strong>แบ่งสัดส่วนเงิน</strong><span>${formatMoney(state.expectedIncome)}</span></span>
+        </button>
+        <button class="menu-row" type="button" data-action="check-update">
+          <span class="menu-icon">↻</span>
+          <span class="menu-copy"><strong>ตรวจเวอร์ชันล่าสุด</strong><span>v${APP_VERSION}</span></span>
+        </button>
+        <button class="menu-row" type="button" data-action="open-install-guide">
+          <span class="menu-icon">📱</span>
+          <span class="menu-copy"><strong>ติดตั้งบน iPhone</strong><span>Safari</span></span>
+        </button>
+      </div>
+
+      <div class="section-title"><h2>บันทึกเร็ว</h2></div>
+      <div class="quick-grid">
+        <button class="quick-action" type="button" data-action="open-transaction"><span>✍️</span><span>เพิ่มรายการ</span></button>
+        <button class="quick-action" type="button" data-action="open-receipt"><span>📷</span><span>สแกนใบเสร็จ</span></button>
+        <button class="quick-action" type="button" data-view="transactions"><span>🧾</span><span>รายการ</span></button>
+        <button class="quick-action" type="button" data-view="wallets"><span>👛</span><span>กระเป๋า</span></button>
+      </div>
+
+      <div class="section-title"><h2>ธีม</h2></div>
       <div class="quick-grid">
         <button class="quick-action" type="button" data-theme="sunny"><span>🟨</span><span>ใบเสร็จ</span></button>
         <button class="quick-action" type="button" data-theme="pink"><span>🌸</span><span>หวานนุ่ม</span></button>
         <button class="quick-action" type="button" data-theme="mint"><span>🟩</span><span>มิ้นต์</span></button>
-        <button class="quick-action" type="button" data-action="reset-demo"><span>↺</span><span>รีเซ็ตเดโม</span></button>
       </div>
+
       <article class="card bank-card">
-        <div class="bank-status"><span class="category-icon">🔐</span><div><strong>ข้อมูลในเครื่อง</strong><div class="muted">บันทึกด้วย localStorage</div></div></div>
+        <div class="bank-status"><span class="category-icon">🔐</span><div><strong>ข้อมูล</strong><div class="muted">localStorage</div></div></div>
         <div class="form-row">
           <button class="ghost-btn" type="button" data-action="export-json">สำรอง JSON</button>
           <button class="ghost-btn" type="button" data-action="export-csv">ส่งออก CSV</button>
         </div>
+        <button class="danger-btn" type="button" data-action="reset-demo">รีเซ็ตข้อมูลเดโม</button>
       </article>
-      <div class="section-title"><h2>หมวดหมู่ทั้งหมด</h2></div>
-      <div class="category-grid">${allCategories(state).map(renderCategoryTile).join("")}</div>
+
+      <div class="section-title"><h2>หมวดหมู่</h2><button class="section-action" type="button" data-action="open-category">+ เพิ่ม</button></div>
+      <div class="category-grid is-compact">${categoryPreview.map(renderCategoryTile).join("")}</div>
     </section>
   `;
 }

@@ -26,13 +26,18 @@ await Promise.all(requiredFiles.map((file) => access(file)));
 const index = await readFile("index.html", "utf8");
 const sw = await readFile("sw.js", "utf8");
 const main = await readFile("src/main.js", "utf8");
+const config = await readFile("src/config/app-config.js", "utf8");
 
 const checks = [
-  [index.includes('type="module" src="src/main.js?v=5"'), "index.html must load src/main.js?v=5 as a module"],
-  [index.includes("styles.css?v=5"), "index.html must load styles.css?v=5"],
-  [sw.includes("lip-in-money-v5"), "service worker cache must be v5"],
+  [index.includes('type="module" src="src/main.js?v=6"'), "index.html must load src/main.js?v=6 as a module"],
+  [index.includes("styles.css?v=6"), "index.html must load styles.css?v=6"],
+  [sw.includes("lip-in-money-v6"), "service worker cache must be v6"],
+  [sw.includes("networkFirst"), "service worker must prefer network updates"],
+  [sw.includes("client.navigate"), "service worker must refresh old controlled pages after activation"],
+  [config.includes('STORAGE_KEY = "lip-in-money-state"'), "storage key must be stable across app versions"],
   [sw.includes("./src/features/actions.js"), "service worker must cache feature actions"],
   [main.includes("window.lipInTapFromElement"), "main must expose tap fallback for mobile browsers"],
+  [main.includes("controllerchange"), "main must reload when a new service worker activates"],
   [main.includes("serviceWorker"), "main must register the service worker"]
 ];
 

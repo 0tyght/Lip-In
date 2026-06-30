@@ -27,6 +27,7 @@ export function createActions({
   openSheet,
   closeSheet,
   toast,
+  checkForAppUpdate,
   getDeferredInstallPrompt,
   setDeferredInstallPrompt
 }) {
@@ -465,6 +466,12 @@ export function createActions({
         break;
       case "install-pwa":
         installPwa();
+        break;
+      case "open-install-guide":
+        openSheet(renderInstallGuideSheet());
+        break;
+      case "check-update":
+        checkForAppUpdate();
         break;
       case "reset-demo":
         resetDemo();
