@@ -1,17 +1,16 @@
 # Lip In Money
 
-PWA สำหรับใช้งานเงินจริง: บันทึกรายรับรายจ่าย จัดการกระเป๋าเงิน งบประมาณ เป้าหมายออมเงิน ผ่อนชำระ แบ่งสัดส่วนเงิน นำเข้า statement CSV และซิงก์ธนาคารผ่าน backend ที่ถือ secret ฝั่ง server เท่านั้น
+PWA สำหรับใช้งานเงินจริงกับธนาคารไทย: บันทึกรายรับรายจ่าย จัดการกระเป๋าเงิน งบประมาณ เป้าหมาย ผ่อนชำระ อ่านสลิปโอนเงินจากรูปในเครื่อง และนำเข้า statement CSV จากธนาคารไทย
 
 คู่มือใช้งานจริงแบบละเอียด: [docs/REAL_USE_GUIDE.md](docs/REAL_USE_GUIDE.md)
 
-## Real bank sync
+## Thai slip workflow
 
-Static GitHub Pages cannot safely hold bank API secrets. Real bank sync is split into:
-
-- PWA client: saves settings, opens Plaid Link, syncs transactions, imports CSV statements.
-- Cloudflare Worker backend: exchanges public tokens, stores provider access tokens in KV, and talks to Plaid/Open Banking APIs.
-
-Setup guide: [docs/BANK_SYNC.md](docs/BANK_SYNC.md)
+- เลือกรูปสลิปจากเครื่อง ผู้ใช้ไม่ต้องอัปโหลดรูปออกจากอุปกรณ์
+- แอปพยายามอ่าน QR ในสลิปด้วยความสามารถของ browser
+- สลิปที่อ่านยอด/รายละเอียดไม่ครบจะเข้า `To do สลิป`
+- ผู้ใช้เปิด To do เพื่อเติมชื่อรายการ หมวด กระเป๋า แล้วบันทึกเป็นธุรกรรมจริง
+- ไม่มี Plaid, Open Banking ต่างประเทศ, Worker backend หรือ bank secret ในโปรเจกต์แล้ว
 
 ## Run locally
 

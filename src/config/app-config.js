@@ -1,4 +1,4 @@
-export const APP_VERSION = "11";
+export const APP_VERSION = "12";
 export const STORAGE_KEY = "lip-in-money-state";
 export const LEGACY_STORAGE_KEYS = [
   "lip-in-money-state-v5",

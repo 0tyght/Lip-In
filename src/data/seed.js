@@ -24,20 +24,13 @@ export function createSeedState() {
     },
     undoStack: [],
     recurringRules: [],
-    bankSettings: {
-      apiBaseUrl: "",
-      apiToken: "",
-      userId: "lipin-personal",
-      provider: "plaid"
-    },
-    bankSync: {
-      status: "not_configured",
-      lastSyncedAt: null,
+    slipInbox: {
       lastImportedAt: null,
-      lastError: "",
-      importedCount: 0
+      importedCount: 0,
+      needsReviewCount: 0,
+      lastError: ""
     },
-    bankConnections: [],
+    slipTodos: [],
     lastSyncedAt: null,
     profile: {
       name: "ผู้ใช้",

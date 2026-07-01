@@ -172,27 +172,3 @@ export function parseBankStatementCsv(text, defaults = {}) {
 
   return { transactions, errors: [] };
 }
-
-export function mapSyncedBankTransaction(transaction, accountWalletMap = {}) {
-  const signedAmount = Number(transaction.amount) || 0;
-  const title = transaction.merchant || transaction.name || transaction.title || "Bank transaction";
-  const type = transaction.type || (signedAmount < 0 ? "income" : "expense");
-  const amount = Math.abs(signedAmount);
-
-  return {
-    externalId: transaction.externalId || transaction.id || transaction.transaction_id || "",
-    provider: transaction.provider || "plaid",
-    source: "bank-sync",
-    status: transaction.pending ? "pending" : transaction.status || "posted",
-    type,
-    title,
-    merchant: transaction.merchant || "",
-    categoryId: transaction.categoryId || guessCategoryId(`${title} ${transaction.category || ""}`, type),
-    walletId: accountWalletMap[transaction.accountId] || transaction.walletId || "daily",
-    amount,
-    date: transaction.date || new Date().toISOString().slice(0, 10),
-    time: transaction.time || "",
-    note: transaction.category ? `Bank category: ${transaction.category}` : "Synced from bank",
-    tags: ["bank", transaction.provider || "sync"].filter(Boolean)
-  };
-}

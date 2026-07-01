@@ -128,6 +128,30 @@ function renderQuickAmounts(state) {
   `;
 }
 
+function renderSlipTodoPreview(state) {
+  const todos = (state.slipTodos || []).filter((todo) => todo.status !== "done");
+  if (!todos.length) return "";
+
+  return `
+    <div class="section-title"><h2>To do สลิป</h2><button class="section-action" type="button" data-action="open-bank">ดูทั้งหมด</button></div>
+    <div class="slip-todo-list is-compact">
+      ${todos.slice(0, 3).map((todo) => `
+        <article class="slip-todo-card">
+          ${todo.thumbnail ? `<img class="slip-thumb" src="${todo.thumbnail}" alt="สลิป ${escapeHtml(todo.fileName)}">` : `<div class="slip-thumb is-empty">🧾</div>`}
+          <div class="slip-todo-main">
+            <div class="allocation-head"><strong>${escapeHtml(todo.fileName)}</strong><span class="tag ${todo.qrStatus === "read" ? "green" : "pink"}">${todo.qrStatus === "read" ? "อ่าน QR ได้" : "ต้องกรอกเอง"}</span></div>
+            <div class="muted">${todo.amount ? formatMoneyHtml(todo.amount) : "ยังไม่พบยอด"} · ${escapeHtml(todo.reference || "ไม่มีเลขอ้างอิง")}</div>
+            <div class="row-actions">
+              <button class="tiny-btn" type="button" data-action="review-slip-todo" data-id="${todo.id}">บันทึกรายการ</button>
+              <button class="tiny-btn danger" type="button" data-action="delete-slip-todo" data-id="${todo.id}">ลบ</button>
+            </div>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderFilterOptions(items, selected, labeler) {
   return items.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected ? "selected" : ""}>${escapeHtml(labeler(item))}</option>`).join("");
 }
@@ -212,9 +236,11 @@ function renderOverview(state) {
       <div class="quick-grid">
         <button class="quick-action" type="button" data-action="open-receipt"><span>📷</span><span>แนบใบเสร็จ</span></button>
         <button class="quick-action" type="button" data-action="open-transaction"><span>✍️</span><span>เพิ่มรายการ</span></button>
-        <button class="quick-action" type="button" data-action="open-bank"><span>🏦</span><span>ซิงก์ธนาคาร</span></button>
+        <button class="quick-action" type="button" data-action="open-bank"><span>🧾</span><span>สลิปไทย</span></button>
         <button class="quick-action" type="button" data-action="export-csv"><span>📤</span><span>ส่งออก CSV</span></button>
       </div>
+
+      ${renderSlipTodoPreview(state)}
 
       <div class="section-title"><h2>กระเป๋าเงิน</h2><button class="section-action" type="button" data-view="wallets">ดูทั้งหมด</button></div>
       <div class="wallet-grid">${state.wallets.slice(0, 6).map(renderWalletCard).join("")}</div>
@@ -307,7 +333,7 @@ function renderTimeReport(state) {
 }
 
 function renderSourceReport(state) {
-  const rows = ["manual", "bank", "receipt"].map((source) => ({
+  const rows = ["manual", "slip", "bank-import", "receipt"].map((source) => ({
     source,
     amount: state.transactions.filter((tx) => tx.source === source && tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0)
   }));
@@ -372,8 +398,8 @@ function renderWallets(state) {
       <div class="section-title"><h2>กระเป๋าเงิน</h2><button class="section-action" type="button" data-action="open-wallet">+ เพิ่ม</button></div>
       <div class="wallet-grid">${state.wallets.map(renderWalletCard).join("")}</div>
       <article class="card bank-card">
-        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>เชื่อมธนาคารจริง</strong><div class="muted">${state.bankSync?.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(new Date(state.bankSync.lastSyncedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }))}` : "ตั้งค่า Bank API หรือ import statement"}</div></div></div>
-        <button class="primary-btn" type="button" data-action="open-bank">ตั้งค่า / ซิงก์ธนาคาร</button>
+        <div class="bank-status"><span class="category-icon">🧾</span><div><strong>สลิปธนาคารไทย</strong><div class="muted">${(state.slipTodos || []).filter((todo) => todo.status !== "done").length} รายการรอตรวจ</div></div></div>
+        <button class="primary-btn" type="button" data-action="open-bank">อ่านสลิป / นำเข้า CSV</button>
       </article>
     </section>
   `;
@@ -434,8 +460,8 @@ function renderMenu(state) {
       <div class="section-title"><h2>เมนู</h2><span class="tag">v${APP_VERSION}</span></div>
       <div class="menu-list">
         <button class="menu-row" type="button" data-action="open-bank">
-          <span class="menu-icon">🏦</span>
-          <span class="menu-copy"><strong>ธนาคาร</strong><span>API จริง / statement</span></span>
+          <span class="menu-icon">🧾</span>
+          <span class="menu-copy"><strong>สลิปธนาคารไทย</strong><span>อ่านสลิปในเครื่อง / CSV</span></span>
         </button>
         <button class="menu-row" type="button" data-action="open-allocation">
           <span class="menu-icon">🧮</span>

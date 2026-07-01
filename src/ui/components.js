@@ -200,7 +200,7 @@ export function renderCategoryTile(category) {
 }
 
 export function sourceLabel(source) {
-  return { manual: "จดเอง", bank: "ธนาคาร", receipt: "ใบเสร็จ" }[source] || "รายการ";
+  return { manual: "จดเอง", slip: "สลิปไทย", "bank-import": "Statement ไทย", bank: "ธนาคาร", receipt: "ใบเสร็จ" }[source] || "รายการ";
 }
 
 export function typeLabel(type) {

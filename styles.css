@@ -1670,6 +1670,47 @@ button {
   line-height: 1.35;
 }
 
+.slip-todo-list {
+  display: grid;
+  gap: 8px;
+}
+
+.slip-todo-list.is-compact {
+  margin-bottom: 4px;
+}
+
+.slip-todo-card {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(95, 85, 78, 0.07);
+}
+
+.slip-thumb {
+  width: 74px;
+  aspect-ratio: 3 / 4;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #fff8df;
+  border: 1px solid rgba(95, 85, 78, 0.08);
+}
+
+.slip-thumb.is-empty {
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+}
+
+.slip-todo-main {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
 .toast {
   position: fixed;
   left: 50%;

@@ -42,9 +42,8 @@ export function loadState() {
       loans: parsed.loans || seed.loans,
       allocations: parsed.allocations || seed.allocations,
       customCategories: parsed.customCategories || [],
-      bankSettings: { ...seed.bankSettings, ...(parsed.bankSettings || {}) },
-      bankSync: { ...seed.bankSync, ...(parsed.bankSync || {}) },
-      bankConnections: Array.isArray(parsed.bankConnections) ? parsed.bankConnections : seed.bankConnections || []
+      slipInbox: { ...seed.slipInbox, ...(parsed.slipInbox || {}) },
+      slipTodos: Array.isArray(parsed.slipTodos) ? parsed.slipTodos : seed.slipTodos || []
     };
 
     removeLegacyPlaceholderData(state, seed, parsed);
@@ -93,24 +92,15 @@ function normalizeState(state, seed) {
   };
   state.undoStack = Array.isArray(state.undoStack) ? state.undoStack : [];
   state.recurringRules = Array.isArray(state.recurringRules) ? state.recurringRules : seed.recurringRules || [];
-  state.bankSettings = {
-    apiBaseUrl: "",
-    apiToken: "",
-    userId: "lipin-personal",
-    provider: "plaid",
-    ...(seed.bankSettings || {}),
-    ...(state.bankSettings || {})
-  };
-  state.bankSync = {
-    status: "not_configured",
-    lastSyncedAt: null,
+  state.slipInbox = {
     lastImportedAt: null,
-    lastError: "",
     importedCount: 0,
-    ...(seed.bankSync || {}),
-    ...(state.bankSync || {})
+    needsReviewCount: 0,
+    lastError: "",
+    ...(seed.slipInbox || {}),
+    ...(state.slipInbox || {})
   };
-  state.bankConnections = Array.isArray(state.bankConnections) ? state.bankConnections : [];
+  state.slipTodos = Array.isArray(state.slipTodos) ? state.slipTodos : seed.slipTodos || [];
   state.transactions = (state.transactions || []).map((transaction) => normalizeTransaction(transaction));
   return state;
 }

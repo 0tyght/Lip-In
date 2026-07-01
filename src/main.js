@@ -252,8 +252,15 @@ sheetRoot.addEventListener("change", (event) => {
     return;
   }
 
+  if (event.target.matches("#thai-slip-files")) {
+    actions.handleThaiSlipFiles(event.target.files);
+    event.target.value = "";
+    return;
+  }
+
   if (event.target.matches("#bank-statement-file")) {
     actions.handleBankStatementFile(event.target.files?.[0]);
+    event.target.value = "";
   }
 });
 

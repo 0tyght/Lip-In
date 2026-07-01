@@ -42,6 +42,7 @@ export function renderTransactionSheet(state, defaultType = "expense", transacti
     <form class="form-grid" id="transaction-form">
       <input type="hidden" name="id" value="${escapeHtml(tx.id)}">
       <input type="hidden" name="type" value="${escapeHtml(tx.type)}">
+      <input type="hidden" name="slipTodoId" value="${escapeHtml(tx.slipTodoId || "")}">
       <div class="segmented" data-segment-group="type">
         ${["expense", "income", "transfer", "payment"].map((type) => `<button class="seg-btn ${type === tx.type ? "is-active" : ""}" type="button" data-segment="${type}">${typeLabel(type)}</button>`).join("")}
       </div>
@@ -152,83 +153,55 @@ export function renderReceiptSheet(state) {
   `;
 }
 
-function renderBankSheetLegacy(state) {
-  return `
-    <div class="sheet-head"><h2>ธนาคาร</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
-    <div class="form-grid">
-      <article class="card bank-card">
-        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>Bank API</strong><div class="muted">${state.lastSyncedAt ? `ซิงก์ล่าสุด ${escapeHtml(state.lastSyncedAt)}` : "ยังไม่เคยซิงก์"}</div></div></div>
-        <button class="primary-btn" type="button" data-action="open-bank">ตั้งค่าการเชื่อมต่อ</button>
-      </article>
-      <div class="allocation-list">
-        <div class="allocation-item"><div class="allocation-head"><strong>นำเข้า statement</strong><span class="tag green">พร้อมออกแบบ</span></div><div class="mini-bar"><span style="width:64%; --bar-color:#91c36b"></span></div></div>
-        <div class="allocation-item"><div class="allocation-head"><strong>Open banking</strong><span class="tag">รอ API จริง</span></div><div class="mini-bar"><span style="width:48%; --bar-color:#ffc022"></span></div></div>
-        <div class="allocation-item"><div class="allocation-head"><strong>PromptPay / QR</strong><span class="tag">รอเชื่อมต่อ</span></div><div class="mini-bar"><span style="width:82%; --bar-color:#f778a2"></span></div></div>
-      </div>
-    </div>
-  `;
-}
-
 export function renderBankSheet(state) {
-  const settings = state.bankSettings || {};
-  const sync = state.bankSync || {};
-  const configured = Boolean(settings.apiBaseUrl && settings.apiToken);
-  const connectionCount = (state.bankConnections || []).length;
-  const statusLabel = sync.status === "synced" ? "ซิงก์แล้ว" :
-    sync.status === "connected" ? "เชื่อมแล้ว" :
-      sync.status === "syncing" ? "กำลังซิงก์" :
-        sync.status === "connecting" ? "กำลังเชื่อม" :
-          configured ? "พร้อมต่อ API" : "ต้องตั้งค่า API";
-  const lastSync = sync.lastSyncedAt ? new Date(sync.lastSyncedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "ยังไม่เคยซิงก์จริง";
+  const inbox = state.slipInbox || {};
+  const todos = (state.slipTodos || []).filter((todo) => todo.status !== "done");
+  const doneCount = (state.slipTodos || []).filter((todo) => todo.status === "done").length;
+  const lastImport = inbox.lastImportedAt ? new Date(inbox.lastImportedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "ยังไม่เคยนำเข้าสลิป";
 
   return `
-    <div class="sheet-head"><h2>ธนาคาร</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
+    <div class="sheet-head"><h2>สลิปธนาคารไทย</h2><button class="close-btn" type="button" data-close aria-label="ปิด">×</button></div>
     <div class="form-grid">
       <article class="card bank-card">
-        <div class="bank-status"><span class="category-icon">🏦</span><div><strong>${statusLabel}</strong><div class="muted">${lastSync}</div></div></div>
+        <div class="bank-status"><span class="category-icon">🧾</span><div><strong>อ่านสลิปในเครื่อง</strong><div class="muted">${lastImport}</div></div></div>
         <div class="bank-metrics">
-          <div class="stat-box"><div class="muted">บัญชีที่เชื่อม</div><strong>${connectionCount}</strong></div>
-          <div class="stat-box"><div class="muted">Provider</div><strong>${escapeHtml(settings.provider || "plaid")}</strong></div>
-          <div class="stat-box"><div class="muted">รายการล่าสุด</div><strong>${sync.importedCount || 0}</strong></div>
+          <div class="stat-box"><div class="muted">รอตรวจ</div><strong>${todos.length}</strong></div>
+          <div class="stat-box"><div class="muted">นำเข้าแล้ว</div><strong>${inbox.importedCount || 0}</strong></div>
+          <div class="stat-box"><div class="muted">บันทึกแล้ว</div><strong>${doneCount}</strong></div>
         </div>
-        ${sync.lastError ? `<div class="bank-alert">${escapeHtml(sync.lastError)}</div>` : ""}
+        ${inbox.lastError ? `<div class="bank-alert">${escapeHtml(inbox.lastError)}</div>` : ""}
       </article>
-
-      <form class="form-grid bank-setup" id="bank-settings-form">
-        <div class="field">
-          <label for="bank-api-url">Bank API URL</label>
-          <input id="bank-api-url" name="apiBaseUrl" inputmode="url" placeholder="https://lip-in-bank-sync.yourname.workers.dev" value="${escapeHtml(settings.apiBaseUrl || "")}">
-        </div>
-        <div class="form-row">
-          <div class="field">
-            <label for="bank-user-id">User ID</label>
-            <input id="bank-user-id" name="userId" value="${escapeHtml(settings.userId || "lipin-personal")}">
-          </div>
-          <div class="field">
-            <label for="bank-provider">Provider</label>
-            <select id="bank-provider" name="provider"><option value="plaid" ${settings.provider === "plaid" ? "selected" : ""}>Plaid / Open Banking</option></select>
-          </div>
-        </div>
-        <div class="field">
-          <label for="bank-api-token">Sync API token</label>
-          <input id="bank-api-token" name="apiToken" type="password" autocomplete="off" placeholder="เก็บไว้ในเครื่องนี้เท่านั้น" value="${escapeHtml(settings.apiToken || "")}">
-        </div>
-        <button class="primary-btn" type="submit">บันทึกการตั้งค่า</button>
-      </form>
 
       <div class="bank-action-grid">
-        <button class="quick-action" type="button" data-action="check-bank-backend"><span>🔐</span><span>ตรวจ backend</span></button>
-        <button class="quick-action" type="button" data-action="connect-real-bank"><span>🏦</span><span>เชื่อมธนาคารจริง</span></button>
-        <button class="quick-action" type="button" data-action="sync-real-bank"><span>🔄</span><span>ซิงก์รายการจริง</span></button>
-        <button class="quick-action" type="button" data-action="pick-bank-statement"><span>📄</span><span>นำเข้า statement</span></button>
+        <button class="quick-action" type="button" data-action="pick-thai-slips"><span>📷</span><span>เลือกสลิปในเครื่อง</span></button>
+        <button class="quick-action" type="button" data-action="pick-bank-statement"><span>📄</span><span>นำเข้า CSV ธนาคารไทย</span></button>
+        <input class="sr-only" id="thai-slip-files" type="file" accept="image/*" multiple>
         <input class="sr-only" id="bank-statement-file" type="file" accept=".csv,text/csv">
       </div>
 
       <div class="allocation-list">
-        <div class="allocation-item"><div class="allocation-head"><strong>1. Deploy Worker</strong><span class="tag green">ต้องมี secret</span></div><div class="muted">ใช้ไฟล์ workers/bank-sync-worker.js แล้วตั้งค่า Plaid + KV</div></div>
-        <div class="allocation-item"><div class="allocation-head"><strong>2. เชื่อมผ่าน Plaid Link</strong><span class="tag">token ไม่เข้า PWA</span></div><div class="muted">หน้าแอปจะได้เฉพาะรายการที่ sync แล้ว ไม่เก็บ access token ธนาคาร</div></div>
-        <div class="allocation-item"><div class="allocation-head"><strong>3. ธนาคารที่ไม่มี API</strong><span class="tag">CSV fallback</span></div><div class="muted">ดาวน์โหลด statement จากแอปธนาคาร แล้วนำเข้า CSV เพื่อกันข้อมูลหล่น</div></div>
+        <div class="allocation-item"><div class="allocation-head"><strong>อ่านจากรูปในเครื่อง</strong><span class="tag green">ไม่อัปโหลด</span></div><div class="muted">ถ้า browser อ่าน QR จากสลิปได้ แอปจะเติมยอดและเลขอ้างอิงให้ก่อน</div></div>
+        <div class="allocation-item"><div class="allocation-head"><strong>สลิปที่ยังไม่ชัดเจน</strong><span class="tag">เข้า To do</span></div><div class="muted">ผู้ใช้มาเลือกหมวด กระเป๋า ชื่อรายการ แล้วบันทึกเป็นธุรกรรมจริง</div></div>
       </div>
+
+      ${todos.length ? `
+        <div class="section-title"><h2>To do สลิป</h2><span class="tag">${todos.length} รายการ</span></div>
+        <div class="slip-todo-list">
+          ${todos.map((todo) => `
+            <article class="slip-todo-card">
+              ${todo.thumbnail ? `<img class="slip-thumb" src="${todo.thumbnail}" alt="สลิป ${escapeHtml(todo.fileName)}">` : `<div class="slip-thumb is-empty">🧾</div>`}
+              <div class="slip-todo-main">
+                <div class="allocation-head"><strong>${escapeHtml(todo.fileName)}</strong><span class="tag ${todo.qrStatus === "read" ? "green" : "pink"}">${todo.qrStatus === "read" ? "อ่าน QR ได้" : "ต้องกรอกเอง"}</span></div>
+                <div class="muted">${todo.amount ? formatMoneyHtml(todo.amount) : "ยังไม่พบยอด"} · ${escapeHtml(todo.reference || "ไม่มีเลขอ้างอิง")}</div>
+                <div class="row-actions">
+                  <button class="tiny-btn" type="button" data-action="review-slip-todo" data-id="${todo.id}">บันทึกรายการ</button>
+                  <button class="tiny-btn danger" type="button" data-action="delete-slip-todo" data-id="${todo.id}">ลบ</button>
+                </div>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      ` : `<div class="empty-state">ยังไม่มีสลิปที่ต้องตรวจ</div>`}
     </div>
   `;
 }
